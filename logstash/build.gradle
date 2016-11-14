@@ -45,7 +45,7 @@ if (!hasProperty("branches")) {
 }
 
 task buildAll
-task pushAll
+task publishAll
 
 branches.split(",").each { name ->
 	task "branch${name}"(type: ChangeBranchTask, dependsOn: [ cloneLogstashDocs, cloneLogstash ]) {
@@ -70,14 +70,14 @@ branches.split(",").each { name ->
 		logstashDocs.commit(message: "Sync from elastic/logstash@${originCommit}", all: true)
 	}
 
-	task "push${name}"(dependsOn: [ "commit${name}" ]) << {
+	task "publish${name}"(dependsOn: [ "commit${name}" ]) << {
 		def logstashDocs = Grgit.open("${project.buildDir}/elastic/logstash-docs")
-		logstashDocs.push()
+		logstashDocs.publish()
 	}
 
   buildAll.dependsOn "build${name}"
-  pushAll.dependsOn "push${name}"
+  publishAll.dependsOn "publish${name}"
 }
 
 build.dependsOn(buildAll)
-task push(dependsOn: pushAll)
+task publish(dependsOn: publishAll)
