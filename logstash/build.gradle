@@ -80,3 +80,4 @@ branches.split(",").each { name ->
 }
 
 build.dependsOn(buildAll)
+task push(dependsOn: pushAll)
