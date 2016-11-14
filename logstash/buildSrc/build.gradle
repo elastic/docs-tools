@@ -1,0 +1,10 @@
+repositories {
+  mavenCentral()
+}
+
+apply plugin: "java"
+
+dependencies {
+  compile group: 'org.ajoberstar', name: 'grgit', version: '1.7.0'
+
+}
