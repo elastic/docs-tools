@@ -26,6 +26,7 @@ apply plugin: 'org.ajoberstar.grgit'
 
 import ChangeBranchTask
 import GitCloneTask
+import org.ajoberstar.grgit.Grgit
 
 task cloneLogstash(type: GitCloneTask) {
 	uri = "git@github.com:/elastic/logstash.git"
@@ -47,36 +48,55 @@ if (!hasProperty("branches")) {
 task buildAll
 task publishAll
 
+Closure skipIfNoChanges = { ->
+	// Skip this task if there are no changes in docs.
+	def logstashDocs = Grgit.open("${project.buildDir}/elastic/logstash-docs")
+	def status = logstashDocs.status()
+	if (status.unstaged.getAllChanges().size() == 0) {
+		println "Skipping build${name}. No changes detected."
+		throw new StopExecutionException("Skipping build")
+	}
+}
+
 branches.split(",").each { name ->
 	task "branch${name}"(type: ChangeBranchTask, dependsOn: [ cloneLogstashDocs, cloneLogstash ]) {
 		branch = name
 	}
 
 	task "copy${name}"(type: Sync, dependsOn: "branch${name}") {
+		description "Sync documentation from sources"
 		from "${buildDir}/elastic/logstash/docs/static/"
 		into "${buildDir}/elastic/logstash-docs/docs/static/"
 	}
 
 	task "build${name}"(type: Exec, dependsOn: [ "copy${name}", cloneDocs ]) {
+		description "Run the build_docs script."
 		def build_docs_pl = "${buildDir}/elastic/docs/build_docs.pl"
 		workingDir "${buildDir}/elastic/logstash-docs/docs"
 		commandLine build_docs_pl, "--doc", "index.asciidoc", "--chunk=1"
+		doFirst(skipIfNoChanges)
 	}
 
-	task "commit${name}"(dependsOn: [ "build${name}" ]) << {
+	task "commit${name}"(dependsOn: [ "build${name}" ]) {
+		doFirst(skipIfNoChanges)
+		description "Create a git commit for any copied docs"
+	} << {
 		def logstash = Grgit.open("${project.buildDir}/elastic/logstash")
 		def logstashDocs = Grgit.open("${project.buildDir}/elastic/logstash-docs")
 		def originCommit = logstash.resolve.toCommit("HEAD").id
 		logstashDocs.commit(message: "Sync from elastic/logstash@${originCommit}", all: true)
 	}
 
-	task "publish${name}"(dependsOn: [ "commit${name}" ]) << {
+	task "publish${name}"(dependsOn: [ "commit${name}" ]) {
+		description "Publish docs changes to the logstash-docs git repo"
+	} << {
 		def logstashDocs = Grgit.open("${project.buildDir}/elastic/logstash-docs")
-		logstashDocs.publish()
+		println("Publishing branch ${name} to elastic/logstash-docs")
+		logstashDocs.push()
 	}
 
-  buildAll.dependsOn "build${name}"
-  publishAll.dependsOn "publish${name}"
+	buildAll.dependsOn "build${name}"
+	publishAll.dependsOn "publish${name}"
 }
 
 build.dependsOn(buildAll)
