@@ -94,7 +94,10 @@ branches.split(",").each { name ->
 			println "Removing deleted files: ${status.unstaged.removed}"
 			logstashDocs.add(patterns: status.unstaged.removed)
 		}
-		logstashDocs.add(update: true)
+		if (status.unstaged.modified.size() > 0) {
+			println "Adding modified files: ${status.unstaged.modified}"
+			logstashDocs.add(patterns: status.unstaged.modified)
+		}
 		logstashDocs.commit(message: "Sync from elastic/logstash@${originCommit}")
 	}
 
