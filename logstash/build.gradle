@@ -84,7 +84,18 @@ branches.split(",").each { name ->
 		def logstash = Grgit.open("${project.buildDir}/elastic/logstash")
 		def logstashDocs = Grgit.open("${project.buildDir}/elastic/logstash-docs")
 		def originCommit = logstash.resolve.toCommit("HEAD").id
-		logstashDocs.commit(message: "Sync from elastic/logstash@${originCommit}", all: true)
+
+		def status = logstashDocs.status()
+		if (status.unstaged.added.size() > 0) {
+			println "Adding new files: ${status.unstaged.added}"
+			logstashDocs.add(patterns: status.unstaged.added)
+		}
+		if (status.unstaged.removed.size() > 0) {
+			println "Removing deleted files: ${status.unstaged.removed}"
+			logstashDocs.add(patterns: status.unstaged.removed)
+		}
+		logstashDocs.add(update: true)
+		logstashDocs.commit(message: "Sync from elastic/logstash@${originCommit}")
 	}
 
 	task "publish${name}"(dependsOn: [ "commit${name}" ]) {
