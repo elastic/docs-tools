@@ -25,6 +25,7 @@ class ChangeBranchTask extends DefaultTask {
 				git.branch.add(name: branch, startPoint: "origin/${branch}", mode: org.ajoberstar.grgit.operation.BranchAddOp.Mode.TRACK)
 				git.checkout(branch: branch)
 			}
+			git.pull()
 		}
 	}
 }
