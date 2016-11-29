@@ -63,11 +63,20 @@ branches.split(",").each { name ->
 		branch = name
 	}
 
-	task "copy${name}"(type: Sync, dependsOn: "branch${name}") {
+	task "copyStatic${name}"(type: Sync, dependsOn: "branch${name}") {
 		description "Sync documentation from sources"
 		from "${buildDir}/elastic/logstash/docs/static/"
 		into "${buildDir}/elastic/logstash-docs/docs/static/"
 	}
+
+	task "copyIndex${name}"(type: Copy, dependsOn: "branch${name}") {
+		description "Sync documentation from sources"
+		from "${buildDir}/elastic/logstash/docs/"
+		into "${buildDir}/elastic/logstash-docs/docs/"
+    include "index.asciidoc"
+	}
+
+  task "copy${name}"(dependsOn: [ "copyIndex${name}", "copyStatic${name}" ])
 
 	task "build${name}"(type: Exec, dependsOn: [ "copy${name}", cloneDocs ]) {
 		description "Run the build_docs script."
