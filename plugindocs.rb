@@ -29,6 +29,8 @@ class PluginDocs < Clamp::Command
         next
       end
 
+
+      is_default_plugin = details["from"] == "default"
       if master?
         version = "master"
         date = "unreleased"
@@ -58,6 +60,14 @@ class PluginDocs < Clamp::Command
         .gsub("%VERSION%", version) \
         .gsub("%RELEASE_DATE%", date) \
         .gsub("%CHANGELOG_URL%", "https://github.com/logstash-plugins/#{repository}/blob/#{version}/CHANGELOG.md")
+
+      if !is_default_plugin
+        # Mark non-default plugins so that the docs build will know to add the
+        # "how to install this plugin" banner.
+        content = content.sub(/^:type: .*/) do |type|
+          "#{type}\n:default_plugin: 0"
+        end
+      end
 
       File.write(output_asciidoc, content)
       puts "#{repository} #{version} (@ #{date})"
