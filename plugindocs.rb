@@ -16,6 +16,8 @@ class PluginDocs < Clamp::Command
 
     skip = [ "logstash-core-plugin-api", "logstash-patterns-core", "logstash-devutils" ]
     skip += [ 
+      "logstash-output-hipchat", # Incompatible with Logstash 5.x
+      "logstash-output-jms", # Incompatible with Logstash 5.x
       "logstash-codec-sflow", # Empty plugin repository
       "logstash-filter-math", # Empty plugin repository
       "logstash-input-mongodb", # Empty plugin repository
