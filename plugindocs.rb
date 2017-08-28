@@ -2,6 +2,7 @@ require "clamp"
 require "json"
 require "fileutils"
 require "time"
+require "yaml"
 require "net/http"
 require "stud/try"
 
@@ -10,27 +11,20 @@ class PluginDocs < Clamp::Command
   option "--master", :flag, "Fetch the plugin's docs from master instead of the version found in PLUGINS_JSON", :default => false
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
 
+  def settings
+    @settings ||= YAML.load(File.read(File.join(File.dirname(__FILE__), "settings.yml")))
+  end
+
   def execute
     report = JSON.parse(File.read(plugins_json))
     plugins = report["successful"]
 
-    skip = [ "logstash-core-plugin-api", "logstash-patterns-core", "logstash-devutils" ]
-    skip += [ 
-      "logstash-output-hipchat", # Incompatible with Logstash 5.x
-      "logstash-output-jms", # Incompatible with Logstash 5.x
-      "logstash-codec-sflow", # Empty plugin repository
-      "logstash-filter-math", # Empty plugin repository
-      "logstash-input-mongodb", # Empty plugin repository
-      "logstash-filter-kubernetes_metadata", # https://github.com/logstash-plugins/logstash-filter-kubernetes_metadata/issues/2
-      "logstash-input-eventlog", # https://github.com/logstash-plugins/logstash-input-eventlog/issues/38
-    ]
 
     plugins.each do |repository, details|
-      if skip.include?(repository)
+      if settings["skip"].include?(repository)
         puts "Skipping #{repository}"
         next
       end
-
 
       is_default_plugin = details["from"] == "default"
       if master?
