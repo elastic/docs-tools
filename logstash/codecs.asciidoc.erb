@@ -1,0 +1,20 @@
+[[codec-plugins]]
+== Codec plugins
+
+A codec plugin changes the data representation of an event. Codecs are essentially stream filters that can operate as part 
+of an input or output.
+
+The following codec plugins are available below. For a list of Elastic supported plugins, please consult the https://www.elastic.co/support/matrix#show_logstash_plugins[Support Matrix].
+
+|=======================================================================
+| Plugin | Description | Github repository
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, description| %>| <<plugins-codecs-<%= plugin_name %>,<%= plugin_name %>>> | <%= description %> | https://github.com/logstash-plugins/logstash-codec-<%= plugin_name %>[logstash-codec-<%= plugin_name %>]
+<% end %>
+|=======================================================================
+
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, _| %>
+:edit_url: https://github.com/logstash-plugins/logstash-codec-<%= plugin_name %>/edit/master/docs/index.asciidoc
+include::codecs/<%= plugin_name %>.asciidoc[]
+<% end %>
+
+:edit_url: 

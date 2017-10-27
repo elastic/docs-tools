@@ -1,0 +1,19 @@
+[[input-plugins]]
+== Input plugins
+
+An input plugin enables a specific source of events to be read by Logstash.
+
+The following input plugins are available below. For a list of Elastic supported plugins, please consult the https://www.elastic.co/support/matrix#show_logstash_plugins[Support Matrix].
+
+|=======================================================================
+| Plugin | Description | Github repository
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, description| %>| <<plugins-inputs-<%= plugin_name %>,<%= plugin_name %>>> | <%= description %> | https://github.com/logstash-plugins/logstash-input-<%= plugin_name %>[logstash-input-<%= plugin_name %>]
+<% end %>
+|=======================================================================
+
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, _| %>
+:edit_url: https://github.com/logstash-plugins/logstash-input-<%= plugin_name %>/edit/master/docs/index.asciidoc
+include::inputs/<%= plugin_name %>.asciidoc[]
+<% end %>
+
+:edit_url: 

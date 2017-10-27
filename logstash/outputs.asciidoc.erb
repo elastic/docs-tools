@@ -1,0 +1,19 @@
+[[output-plugins]]
+== Output plugins
+
+An output plugin sends event data to a particular destination. Outputs are the final stage in the event pipeline.
+
+The following output plugins are available below. For a list of Elastic supported plugins, please consult the https://www.elastic.co/support/matrix#show_logstash_plugins[Support Matrix].
+
+|=======================================================================
+| Plugin | Description | Github repository
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, description| %>| <<plugins-outputs-<%= plugin_name %>,<%= plugin_name %>>> | <%= description %> | https://github.com/logstash-plugins/logstash-output-<%= plugin_name %>[logstash-output-<%= plugin_name %>]
+<% end %>
+|=======================================================================
+
+<% plugins.sort {|plugin_a, plugin_b| plugin_a.first <=> plugin_b.first }.each do |plugin_name, _| %>
+:edit_url: https://github.com/logstash-plugins/logstash-output-<%= plugin_name %>/edit/master/docs/index.asciidoc
+include::outputs/<%= plugin_name %>.asciidoc[]
+<% end %>
+
+:edit_url: 

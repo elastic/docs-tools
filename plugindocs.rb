@@ -5,6 +5,7 @@ require "time"
 require "yaml"
 require "net/http"
 require "stud/try"
+require "erb"
 
 class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
@@ -19,7 +20,12 @@ class PluginDocs < Clamp::Command
   def execute
     report = JSON.parse(File.read(plugins_json))
     plugins = report["successful"]
-
+    plugins_indices = {
+      "codecs" => {},
+      "filters" => {},
+      "inputs" => {},
+      "outputs" => {}
+    }
 
     plugins.each do |repository, details|
       if settings["skip"].include?(repository)
@@ -33,7 +39,9 @@ class PluginDocs < Clamp::Command
         date = "unreleased"
       else
         version = "v" + details["version"]
-        timestamp = release_date(repository, details["version"])
+        release_info = fetch_release_info(repository)
+        timestamp = parse_release_date(release_info, details["version"])
+        description = parse_summary(release_info, details["version"])
         date = timestamp.strftime("%Y-%m-%d")
       end
 
@@ -49,6 +57,7 @@ class PluginDocs < Clamp::Command
 
       _, type, name = repository.split("-",3)
       output_asciidoc = "#{output_path}/docs/plugins/#{type}s/#{name}.asciidoc"
+      plugins_indices["#{type}s"][name] = description
       directory = File.dirname(output_asciidoc)
       FileUtils.mkdir_p(directory) if !File.directory?(directory)
 
@@ -69,9 +78,16 @@ class PluginDocs < Clamp::Command
       File.write(output_asciidoc, content)
       puts "#{repository} #{version} (@ #{date})"
     end
+
+    plugins_indices.each do |type, plugins|
+      erb = ERB.new(File.read("logstash/#{type}.asciidoc.erb"))
+      result = erb.result(binding)
+      index_asciidoc = "#{output_path}/docs/plugins/#{type}.asciidoc"
+      File.write(index_asciidoc, result)
+    end
   end
 
-  def release_date(gem_name, version)
+  def fetch_release_info(gem_name)
     uri = URI("https://rubygems.org/api/v1/versions/#{gem_name}.json")
     response = Stud::try(5.times) do
       r = Net::HTTP.get_response(uri)
@@ -91,12 +107,23 @@ class PluginDocs < Clamp::Command
     body.encode(Encoding::UTF_8, :invalid => :replace, :undef => :replace)
 
     data = JSON.parse(body)
+  end
 
+  def parse_release_date(data, version)
     current_version = data.select { |v| v["number"] == version }.first
     if current_version.nil?
       "N/A"
     else
       Time.parse(current_version["created_at"])
+    end
+  end
+
+  def parse_summary(data, version)
+    current_version = data.select { |v| v["number"] == version }.first
+    if current_version.nil?
+      "N/A"
+    else
+      current_version["summary"]
     end
   end
 end
