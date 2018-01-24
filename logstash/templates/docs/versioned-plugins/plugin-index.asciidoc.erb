@@ -1,0 +1,11 @@
+:plugin: <%= name %>
+:type: <%= type %>
+
+include::{include_path}/version-list-intro.asciidoc[]
+
+|=======================================================================
+| Version | Release Date
+<% versions.each do |version, date| %><%= "| <<#{version}-plugins-#{type}s-#{name},#{version}>> | #{date}" %>
+<% end %>|=======================================================================
+
+<% versions.each do |version, date| %><%= "include::#{name}-#{version}.asciidoc[]\n" %><% end %>
