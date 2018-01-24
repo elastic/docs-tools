@@ -1,0 +1,6 @@
+:type: <%= type %>
+:type_uc: <%= type.capitalize %>
+
+include::include/plugin-intro.asciidoc[]
+<% plugins.each do |plugin_name, description| %><%= "\ninclude::#{type}s/#{plugin_name }-index.asciidoc[]" %>
+<% end %>
