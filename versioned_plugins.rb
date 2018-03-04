@@ -99,6 +99,7 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%VERSION%", version) \
       .gsub("%RELEASE_DATE%", date) \
       .gsub("%CHANGELOG_URL%", "https://github.com/logstash-plugins/#{repository}/blob/#{version}/CHANGELOG.md") \
+      .gsub(":include_path: ../../../../logstash/docs/include", ":include_path: ../include/6.x") \
 
     content = content.sub(/^:type: .*/) do |type|
       "#{type}"
@@ -112,7 +113,7 @@ class VersionedPluginDocs < Clamp::Command
       content = content.gsub(/^====== /, "===== ")
         .gsub("[source]", "[source,shell]")
         .gsub('[id="plugins-{type}-{plugin}', '[id="plugins-{type}s-{plugin}')
-        .gsub(":include_path: ../../../logstash/docs/include", ":include_path: ../../../../logstash/docs/include")
+        .gsub(":include_path: ../../../logstash/docs/include", ":include_path: ../include/6.x")
 
       content = content
         .gsub("<<string,string>>", "{logstash-ref}/configuration-file-structure.html#string[string]")
