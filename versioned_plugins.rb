@@ -44,10 +44,12 @@ class VersionedPluginDocs < Clamp::Command
       end
       puts "[#{repo}] found #{tags.size} tags"
       versions = []
-      tags = tags.map {|tag| tag.name}.sort.reverse
+      tags = tags.map {|tag| tag.name}
+                 .select {|tag| tag.match(/v\d+\.\d+\.\d+/) }
+                 .sort_by {|tag| Gem::Version.new(tag[1..-1]) }
+                 .reverse
       tags = tags.slice(0,1) if latest_only?
       tags.each do |tag|
-        next unless tag.match(/v\d+\.\d+\.\d+/)
         version = tag[1..-1]
         print "fetch docs for tag: #{tag} (version #{version}).."
         doc = fetch_doc(repo, tag)
