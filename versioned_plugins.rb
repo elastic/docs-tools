@@ -23,7 +23,7 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-filter-script",
   ]
 
-  def execute
+  def generate_docs
     regex = Regexp.new(plugin_regex)
     puts "writing to #{output_path}"
     Octokit.auto_paginate = true
@@ -74,6 +74,32 @@ class VersionedPluginDocs < Clamp::Command
       end
     end
     write_type_index(repos_to_index)
+  end
+
+  def clone_docs_repo
+    `git clone git@github.com:elastic/logstash-docs.git #{output_path}`
+    Dir.chdir(output_path) do |path|
+      `git checkout versioned_plugin_docs`
+    end
+  end
+
+  def submit_pr
+    branch_name = "test_pr"
+    Dir.chdir(output_path) do |path|
+      `git checkout -b #{branch_name}`
+      `git add .`
+      `git commit -m "updated docs" -a`
+      `git push origin #{branch_name}`
+    end
+    octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
+    octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
+        "[test] example of auto generated pr", "test body")
+  end
+
+  def execute
+    clone_docs_repo
+    generate_docs
+    submit_pr
   end
 
   def fetch_doc(repo, tag)
