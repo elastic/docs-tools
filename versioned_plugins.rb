@@ -27,6 +27,11 @@ class VersionedPluginDocs < Clamp::Command
     regex = Regexp.new(plugin_regex)
     puts "writing to #{output_path}"
     Octokit.auto_paginate = true
+    if ENV.fetch("GITHUB_TOKEN", "").size > 0
+      puts "using a github token"
+    else
+      puts "not using a github token"
+    end
     octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
