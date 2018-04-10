@@ -35,6 +35,8 @@ class VersionedPluginDocs < Clamp::Command
     octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
+    repos = repos - PLUGIN_SKIP_LIST
+
     repos.sort!
     repos.uniq!
     puts "found #{repos.size} repos"
