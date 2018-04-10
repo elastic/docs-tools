@@ -84,16 +84,16 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def submit_pr
-    branch_name = "test_pr"
+    branch_name = "versioned_docs_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
     Dir.chdir(output_path) do |path|
       `git checkout -b #{branch_name}`
       `git add .`
-      `git commit -m "updated docs" -a`
+      `git commit -m "updated versioned plugin docs" -a`
       `git push origin #{branch_name}`
     end
     octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
     octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
-        "[test] example of auto generated pr", "test body")
+        "auto generated update of versioned plugin documentation", "")
   end
 
   def execute
