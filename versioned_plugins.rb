@@ -113,7 +113,7 @@ class VersionedPluginDocs < Clamp::Command
 
   def test_docs
     `git clone https://github.com/elastic/docs #{docs_path}`
-    `perl #{docs_path}/docs/build_docs.pl --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1 -open`
+    `perl #{docs_path}/build_docs.pl --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1 -open`
     unless $?.success?
       puts "failed to build docs. terminating"
       exit $?.exitstatus
