@@ -14,6 +14,8 @@ class VersionedPluginDocs < Clamp::Command
   option "--latest-only", :flag, "Only generate documentation for latest version of each plugin", :default => false
   option "--repair", :flag, "Apply several heuristics to correct broken documentation", :default => false
   option "--plugin-regex", "REGEX", "Only generate if plugin matches given regex", :default => "logstash-(?:codec|filter|input|output)"
+  option "--submit-pr", :flag, "Create a PR against logstash-docs after generation", :default => false
+  option "--test", :flag, "Clone docs repo and test generated docs", :default => false
 
   PLUGIN_SKIP_LIST = [
     "logstash-codec-example",
@@ -23,9 +25,24 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-filter-script",
   ]
 
+  def logstash_docs_path
+    File.join(output_path, "logstash-docs")
+  end
+
+  def docs_path
+    File.join(output_path, "docs")
+  end
+
+  def execute
+    clone_docs_repo
+    generate_docs
+    test_docs if test?
+    submit_pr if submit_pr?
+  end
+
   def generate_docs
     regex = Regexp.new(plugin_regex)
-    puts "writing to #{output_path}"
+    puts "writing to #{logstash_docs_path}"
     Octokit.auto_paginate = true
     if ENV.fetch("GITHUB_TOKEN", "").size > 0
       puts "using a github token"
@@ -35,18 +52,29 @@ class VersionedPluginDocs < Clamp::Command
     octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
-    repos = repos - PLUGIN_SKIP_LIST
+    repos = (repos - PLUGIN_SKIP_LIST).sort.uniq
 
-    repos.sort!
-    repos.uniq!
     puts "found #{repos.size} repos"
+    repos_by_type = {}
+    repos.each do |repo|
+      _, type, name = repo.split("-",3)
+      repos_by_type[type] ||= []
+      repos_by_type[type] << repo
+    end
+    threads = repos_by_type.map do |type, repos|
+      Thread.new { process_repos(octo, type, repos) }
+    end
+    threads.each(&:join)
+  end
+
+  def process_repos(octo, type, repos)
     repos_to_index = []
     repos.each do |repo|
       tags = octo.tags("logstash-plugins/#{repo}")
       begin
-      release_info = fetch_release_info(repo)
+        release_info = fetch_release_info(repo)
       rescue
-        puts "failed to fetch data for #{repo}. skipping"
+        puts "[#{repo}] failed to fetch data for #{repo}. skipping"
         next
       end
       puts "[#{repo}] found #{tags.size} tags"
@@ -58,41 +86,41 @@ class VersionedPluginDocs < Clamp::Command
       tags = tags.slice(0,1) if latest_only?
       tags.each do |tag|
         version = tag[1..-1]
-        print "fetch docs for tag: #{tag} (version #{version}).."
+        puts "[#{repo}] fetching docs for tag: #{tag} (version #{version}).."
         doc = fetch_doc(repo, tag)
         if doc.nil?
-          puts "not found, skipping the remaining tags"
+          puts "[#{repo}] couldn't find docs for tag #{tag}, skipping remaining tags.."
           break
         else
-          puts doc.size
           begin
             timestamp = parse_release_date(release_info, version)
             date = timestamp.strftime("%Y-%m-%d")
             versions << [tag, date]
             expand_doc(doc, repo, tag, date)
           rescue => e
-            puts "failed to process release date for #{repo} #{tag}: #{e.inspect}"
+            puts "[#{repo}] failed to process release date for #{repo} #{tag}: #{e.inspect}"
           end
         end
       end
       if versions.any?
-        write_versions_index(repo, versions)
-        repos_to_index << repo
+        _, _, name = repo.split("-",3)
+        write_versions_index(name, type, versions)
+        repos_to_index << name
       end
     end
-    write_type_index(repos_to_index)
+    write_type_index(type, repos_to_index)
   end
 
   def clone_docs_repo
-    `git clone git@github.com:elastic/logstash-docs.git #{output_path}`
-    Dir.chdir(output_path) do |path|
+    `git clone git@github.com:elastic/logstash-docs.git #{logstash_docs_path}`
+    Dir.chdir(logstash_docs_path) do |path|
       `git checkout versioned_plugin_docs`
     end
   end
 
   def submit_pr
     branch_name = "versioned_docs_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
-    Dir.chdir(output_path) do |path|
+    Dir.chdir(logstash_docs_path) do |path|
       `git checkout -b #{branch_name}`
       `git add .`
       `git commit -m "updated versioned plugin docs" -a`
@@ -103,10 +131,17 @@ class VersionedPluginDocs < Clamp::Command
         "auto generated update of versioned plugin documentation", "")
   end
 
-  def execute
-    clone_docs_repo
-    generate_docs
-    submit_pr
+  def test_docs
+    puts "Cloning Docs repository"
+    `git clone --depth 1 https://github.com/elastic/docs #{docs_path}`
+    puts "Running docs build.."
+    `perl #{docs_path}/build_docs.pl --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
+    if $?.success?
+      puts "success!"
+    else
+      puts "failed to build docs. terminating"
+      exit $?.exitstatus
+    end
   end
 
   def fetch_doc(repo, tag)
@@ -120,7 +155,7 @@ class VersionedPluginDocs < Clamp::Command
 
   def expand_doc(doc, repository, version, date)
     _, type, name = repository.split("-",3)
-    output_asciidoc = "#{output_path}/docs/versioned-plugins/#{type}s/#{name}-#{version}.asciidoc"
+    output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-#{version}.asciidoc"
     if File.exists?(output_asciidoc) && skip_existing?
       puts "skipping plugin #{repository} docs for version #{version}: file already exists"
       return
@@ -246,9 +281,8 @@ class VersionedPluginDocs < Clamp::Command
     end
   end
 
-  def write_versions_index(plugin_name, versions)
-    _, type, name = plugin_name.split("-",3)
-    output_asciidoc = "#{output_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc"
+  def write_versions_index(name, type, versions)
+    output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc"
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/plugin-index.asciidoc.erb"))
@@ -256,21 +290,13 @@ class VersionedPluginDocs < Clamp::Command
     File.write(output_asciidoc, content)
   end
 
-  def write_type_index(repos)
+  def write_type_index(type, plugins)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/type.asciidoc.erb"))
-    plugins = {}
-    repos.each do |repo|
-      _, type, name = repo.split("-",3)
-      plugins[type] ||= []
-      plugins[type] << name
-    end
-    plugins.each do |type, plugins|
-      output_asciidoc = "#{output_path}/docs/versioned-plugins/#{type}s-index.asciidoc"
-      directory = File.dirname(output_asciidoc)
-      FileUtils.mkdir_p(directory) if !File.directory?(directory)
-      content = template.result(binding)
-      File.write(output_asciidoc, content)
-    end
+    output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s-index.asciidoc"
+    directory = File.dirname(output_asciidoc)
+    FileUtils.mkdir_p(directory) if !File.directory?(directory)
+    content = template.result(binding)
+    File.write(output_asciidoc, content)
   end
 end
 
