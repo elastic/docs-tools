@@ -9,7 +9,7 @@ require "octokit"
 require "erb"
 
 class VersionedPluginDocs < Clamp::Command
-  option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
+  option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
   option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
   option "--latest-only", :flag, "Only generate documentation for latest version of each plugin", :default => false
   option "--repair", :flag, "Apply several heuristics to correct broken documentation", :default => false
