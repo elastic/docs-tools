@@ -36,8 +36,12 @@ class VersionedPluginDocs < Clamp::Command
   def execute
     clone_docs_repo
     generate_docs
-    test_docs if test?
-    submit_pr if submit_pr?
+    if new_versions?
+      test_docs if test?
+      submit_pr if submit_pr?
+    else
+      puts "No new versions detected. Exiting.."
+    end
   end
 
   def generate_docs
@@ -115,6 +119,13 @@ class VersionedPluginDocs < Clamp::Command
     `git clone git@github.com:elastic/logstash-docs.git #{logstash_docs_path}`
     Dir.chdir(logstash_docs_path) do |path|
       `git checkout versioned_plugin_docs`
+    end
+  end
+
+  def new_versions?
+    Dir.chdir(logstash_docs_path) do |path|
+      `! git diff-index --quiet HEAD`
+      $?.success?
     end
   end
 
