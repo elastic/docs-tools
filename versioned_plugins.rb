@@ -124,6 +124,7 @@ class VersionedPluginDocs < Clamp::Command
 
   def new_versions?
     Dir.chdir(logstash_docs_path) do |path|
+      `git diff --name-status`
       `! git diff-index --quiet HEAD`
       $?.success?
     end
