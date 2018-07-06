@@ -14,7 +14,7 @@ class VersionedPluginDocs < Clamp::Command
   option "--latest-only", :flag, "Only generate documentation for latest version of each plugin", :default => false
   option "--repair", :flag, "Apply several heuristics to correct broken documentation", :default => false
   option "--plugin-regex", "REGEX", "Only generate if plugin matches given regex", :default => "logstash-(?:codec|filter|input|output)"
-  option "--submit-pr", :flag, "Create a PR against logstash-docs after generation", :default => false
+  option "--dry-run", :flag, "Don't create a commit or pull request against logstash-docs", :default => false
   option "--test", :flag, "Clone docs repo and test generated docs", :default => false
 
   PLUGIN_SKIP_LIST = [
@@ -37,8 +37,23 @@ class VersionedPluginDocs < Clamp::Command
     clone_docs_repo
     generate_docs
     if new_versions?
-      test_docs if test?
-      submit_pr if submit_pr?
+      if test?
+        exit_status = test_docs
+        if exit_status == 0 # success
+          puts "success!"
+        else
+          puts "failed to build docs :("
+          unless dry_run?
+            puts "submitting PR for manual fixing."
+            submit_pr
+          end
+          exit exit_status
+        end
+      end
+      unless dry_run?
+        puts "commiting to logstash-docs"
+        commit
+      end
     else
       puts "No new versions detected. Exiting.."
     end
@@ -143,17 +158,20 @@ class VersionedPluginDocs < Clamp::Command
         "auto generated update of versioned plugin documentation", "")
   end
 
+  def commit
+    Dir.chdir(logstash_docs_path) do |path|
+      `git checkout versioned_plugin_docs`
+      `git add .`
+      `git commit -m "updated versioned plugin docs" -a`
+      `git push origin versioned_plugin_docs`
+    end
+  end
+
   def test_docs
     puts "Cloning Docs repository"
     `git clone --depth 1 https://github.com/elastic/docs #{docs_path}`
     puts "Running docs build.."
     `perl #{docs_path}/build_docs.pl --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
-    if $?.success?
-      puts "success!"
-    else
-      puts "failed to build docs. terminating"
-      exit $?.exitstatus
-    end
   end
 
   def fetch_doc(repo, tag)
