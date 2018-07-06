@@ -172,6 +172,7 @@ class VersionedPluginDocs < Clamp::Command
     `git clone --depth 1 https://github.com/elastic/docs #{docs_path}`
     puts "Running docs build.."
     `perl #{docs_path}/build_docs.pl --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
+    $?.exitstatus
   end
 
   def fetch_doc(repo, tag)
