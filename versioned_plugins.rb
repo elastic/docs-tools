@@ -146,7 +146,8 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def submit_pr
-    branch_name = "versioned_docs_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
+    #branch_name = "versioned_docs_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
+    branch_name = "versioned_docs_failed_build"
     Dir.chdir(logstash_docs_path) do |path|
       `git checkout -b #{branch_name}`
       `git add .`
