@@ -1,0 +1,18 @@
+diff --git a/rakelib/plugins_docs_dependencies.rake b/rakelib/plugins_docs_dependencies.rake
+index 45e7b0884..4c2d711be 100644
+--- a/rakelib/plugins_docs_dependencies.rake
++++ b/rakelib/plugins_docs_dependencies.rake
+@@ -128,9 +128,9 @@ task :generate_plugins_version do
+   require "bundler"
+   require "bundler/dsl"
+   require "json"
+-  Bundler.setup(:default)
++  #Bundler.setup(:default)
+   require "pluginmanager/gemfile"
+-  require "bootstrap/environment"
++  #require "bootstrap/environment"
+ 
+   PluginVersionWorking.new.generate
+-end
+\ No newline at end of file
++end
