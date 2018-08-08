@@ -1,4 +1,15 @@
 #!/bin/bash
+set -x
+
+if [ -z "$branch_specifier" ]; then
+    echo "Environment variable 'branch_specifier' is required."
+    exit 1
+fi
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "Environment variable 'GITHUB_TOKEN' is required."
+    exit 1
+fi
 
 export JRUBY_OPTS="-J-Xmx2g"
 export GRADLE_OPTS="-Xmx2g -Dorg.gradle.daemon=false"
@@ -18,7 +29,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-patch -p1 <../docs-tools/logstash/docs.patch
+patch --strip=1 <../docs-tools/logstash/remove-setup-and-bootstrap-from-docs-rakelib.patch
 
 rake test:install-core
 
