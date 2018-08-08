@@ -10,4 +10,8 @@ skip:
   - logstash-filter-math # Empty plugin repository
   - logstash-input-mongodb # Empty plugin repository
   - logstash-filter-kubernetes_metadata # https://github.com/logstash-plugins/logstash-filter-kubernetes_metadata/issues/2
-  - logstash-input-eventlog # https://github.com/logstash-plugins/logstash-input-eventlog/issues/38
+  - logstash-input-eventlog # https://github.com/logstash-plugins/logstash-input-eventlog/issues/38  
+  - logstash-codec-s3plain # Incompatible with Logstash 6.x
+  - logstash-filter-anonymize # Incompatible with Logstash 6.x
+  - logstash-filter-unique # Incompatible with Logstash 6.x
+  - logstash-filter-multiline # Incompatible with Logstash 6.x
