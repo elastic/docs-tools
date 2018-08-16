@@ -33,7 +33,11 @@ class VersionedPluginDocs < Clamp::Command
     File.join(output_path, "docs")
   end
 
+  attr_reader :octo
+
   def execute
+    setup_github_client
+    check_rate_limit!
     clone_docs_repo
     generate_docs
     if new_versions?
@@ -59,16 +63,27 @@ class VersionedPluginDocs < Clamp::Command
     end
   end
 
-  def generate_docs
-    regex = Regexp.new(plugin_regex)
-    puts "writing to #{logstash_docs_path}"
+  def setup_github_client
     Octokit.auto_paginate = true
     if ENV.fetch("GITHUB_TOKEN", "").size > 0
       puts "using a github token"
     else
       puts "not using a github token"
     end
-    octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
+    @octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
+  end
+
+  def check_rate_limit!
+    rate_limit = octo.rate_limit
+    puts "Current GitHub rate limit: #{rate_limit.remaining}/#{rate_limit.limit}"
+    if rate_limit.remaining < 100
+      puts "Warning! Api rate limit is close to being reached, this script may fail to execute"
+    end
+  end
+
+  def generate_docs
+    regex = Regexp.new(plugin_regex)
+    puts "writing to #{logstash_docs_path}"
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
     repos = (repos - PLUGIN_SKIP_LIST).sort.uniq
