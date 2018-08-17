@@ -103,15 +103,26 @@ class VersionedPluginDocs < Clamp::Command
 
   def process_repos(octo, type, repos)
     repos_to_index = []
+    puts "Looking for tags since the day before the last logstash-docs commit: #{$TIMESTAMP_REFERENCE}"
     repos.each do |repo|
-      tags = octo.tags("logstash-plugins/#{repo}")
+      print "[#{repo}] looking for tags..."
+      # with this header we avoid consuming from the github's rate limit quota if there are no new tags
+      tags = octo.tags("logstash-plugins/#{repo}", :headers => { "If-Modified-Since" => $TIMESTAMP_REFERENCE})
+      if tags.empty?
+        puts "no new tags. skipping"
+        _, _, name = repo.split("-",3)
+        repos_to_index << name if versions_index_exists?(name, type)
+        next
+      else
+        puts "found new tags (in total: #{tags.size} tags)"
+      end
+
       begin
         release_info = fetch_release_info(repo)
       rescue
         puts "[#{repo}] failed to fetch data for #{repo}. skipping"
         next
       end
-      puts "[#{repo}] found #{tags.size} tags"
       versions = []
       tags = tags.map {|tag| tag.name}
                  .select {|tag| tag.match(/v\d+\.\d+\.\d+/) }
@@ -149,6 +160,8 @@ class VersionedPluginDocs < Clamp::Command
     `git clone git@github.com:elastic/logstash-docs.git #{logstash_docs_path}`
     Dir.chdir(logstash_docs_path) do |path|
       `git checkout versioned_plugin_docs`
+      last_commit_date = `git log -1 --date=short --pretty=format:%cd`
+      $TIMESTAMP_REFERENCE=(Time.parse(last_commit_date) - 24*3600).strftime("%a, %d %b %Y %H:%M:%S %Z")
     end
   end
 
@@ -326,6 +339,10 @@ class VersionedPluginDocs < Clamp::Command
     else
       Time.parse(current_version["created_at"])
     end
+  end
+
+  def versions_index_exists?(name, type)
+    File.exist?("#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc")
   end
 
   def write_versions_index(name, type, versions)
