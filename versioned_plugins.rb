@@ -256,8 +256,9 @@ class VersionedPluginDocs < Clamp::Command
         .gsub("<<uri,uri>>", "{logstash-ref}/configuration-file-structure.html#uri[uri]")
         .gsub("<<bytes,bytes>>", "{logstash-ref}/configuration-file-structure.html#bytes[bytes]")
         .gsub("<<event-api,Event API>>", "{logstash-ref}/event-api.html[Event API]")
-        .gsub("<<dead-letter-queues>>", '{logstash-ref}/dead-letter-queues.html[dead-letter-queues]')
+        .gsub("<<dead-letter-queues>>", "{logstash-ref}/dead-letter-queues.html[dead-letter-queues]")
         .gsub("<<logstash-config-field-references>>", "{logstash-ref}/event-dependent-configuration.html#logstash-config-field-references[Field References]")
+        .gsub("<<string_duration,string_duration>>", "{logstash-ref}/string_duration.html[string_duration]")
     end
 
     content = content.gsub('[id="plugins-', '[id="{version}-plugins-')
