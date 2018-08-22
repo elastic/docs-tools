@@ -18,6 +18,9 @@ export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
 rbenv local jruby-9.1.12.0
 
+# cwd is "docs-tools" so lets go one step back
+cd ..
+
 echo "Cloning 'logstash-docs'"
 git clone --depth 1 git@github.com:elastic/logstash-docs.git -b $branch_specifier
 
@@ -29,15 +32,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-patch --strip=1 <../docs-tools/logstash/remove-setup-and-bootstrap-from-docs-rakelib.patch
-
-rake test:install-core
-
-echo "Generate json with plugins version"
-# Since we generate the lock file and we try to resolve dependencies we will need
-# to use the bundle wrapper to correctly find the rake cli. If we don't do this we
-# will get an activation error,
-./vendor/jruby/bin/rake generate_plugins_version
+./gradlew generate_plugins_version
 
 cd ../docs-tools
 
