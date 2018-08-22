@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -ex
 
 if [ -z "$branch_specifier" ]; then
     echo "Environment variable 'branch_specifier' is required."
@@ -32,7 +32,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-./gradlew generate_plugins_version
+./gradlew generatePluginsVersion
 
 cd ../docs-tools
 
