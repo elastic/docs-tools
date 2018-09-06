@@ -52,7 +52,9 @@ git checkout -b $BRANCH
 
 git add .
 
-git commit --author="Logstash CI <jenkins@elastic.co>" -m "updated docs for ${branch_specifier}"
+git config user.email "jenkins@elastic.co"
+git config user.name "Logstash CI"
+git commit -m "updated docs for ${branch_specifier}"
 
 git push origin $BRANCH
 
