@@ -62,6 +62,7 @@ git commit -m "updated docs for ${branch_specifier}"
 
 git push origin $BRANCH
 
-curl -v -H "Authorization: token $GITHUB_TOKEN" -X POST -k \
+set +x
+curl -H "Authorization: token $GITHUB_TOKEN" -X POST \
   -d "{\"title\": \"updated docs for ${branch_specifier}\",\"head\": \"${BRANCH}\",\"base\": \"${branch_specifier}\"}" \
   https://api.github.com/repos/elastic/logstash-docs/pulls
