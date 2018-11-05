@@ -1,5 +1,7 @@
 #!/bin/bash
-set -ex
+set -e
+
+set +x
 
 if [ -z "$branch_specifier" ]; then
     echo "Environment variable 'branch_specifier' is required."
@@ -10,6 +12,8 @@ if [ -z "$GITHUB_TOKEN" ]; then
     echo "Environment variable 'GITHUB_TOKEN' is required."
     exit 1
 fi
+
+set -x
 
 export JRUBY_OPTS="-J-Xmx2g"
 export GRADLE_OPTS="-Xmx2g -Dorg.gradle.daemon=false"
