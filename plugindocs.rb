@@ -78,7 +78,7 @@ class PluginDocs < Clamp::Command
     response = Stud::try(5.times) do
       r = Net::HTTP.get_response(uri)
       if !r.kind_of?(Net::HTTPSuccess)
-        raise "Fetch rubygems metadata #{url} failed: #{r}"
+        raise "Fetch rubygems metadata #{uri} failed: #{r}"
       end
       r
     end
