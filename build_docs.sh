@@ -36,7 +36,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-./gradlew generatePluginsVersion
+GRADLE_OPTS="-Xmx16g" ./gradlew generatePluginsVersion
 
 cd ../docs-tools
 
