@@ -23,6 +23,10 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-filter-example",
     "logstash-output-example",
     "logstash-filter-script",
+    "logstash-input-java_input_example",
+    "logstash-filter-java_filter_example",
+    "logstash-output-java_output_example",
+    "logstash-codec-java_codec_example"
   ]
 
   def logstash_docs_path
