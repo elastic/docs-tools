@@ -45,7 +45,7 @@ bundle exec ruby plugindocs.rb --output-path ../logstash-docs ../logstash/plugin
 
 cd ../logstash
 
-perl ../docs/build_docs --doc docs/index.asciidoc --chunk 1
+perl ../docs/build_docs --respect_edit_url_overrides --doc docs/index.asciidoc --resource=../logstash-docs/docs/ --chunk 1
 
 cd ../logstash-docs
 
