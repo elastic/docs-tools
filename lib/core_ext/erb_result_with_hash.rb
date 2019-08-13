@@ -9,7 +9,7 @@
 # This patch back-ports the functionality when executed on Rubies < 2.5
 # by providing a minimal binding based on a one-off Struct to the existing
 # `ERB#result(binding)` method.
-if RUBY_VERSION =~ %r{\A(?:1\.|2\.[0-4]\.}
+if RUBY_VERSION =~ %r{\A(?:1\.|2\.[0-4]\.)}
   require 'erb'
 
   class ERB
