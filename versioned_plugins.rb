@@ -8,6 +8,8 @@ require "stud/try"
 require "octokit"
 require "erb"
 
+require_relative 'lib/core_ext/erb_result_with_hash'
+
 class VersionedPluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
   option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
@@ -354,7 +356,7 @@ class VersionedPluginDocs < Clamp::Command
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/plugin-index.asciidoc.erb"))
-    content = template.result(binding)
+    content = template.result_with_hash(name: name, type: type, versions: versions)
     File.write(output_asciidoc, content)
   end
 
@@ -363,7 +365,7 @@ class VersionedPluginDocs < Clamp::Command
     output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s-index.asciidoc"
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
-    content = template.result(binding)
+    content = template.result_with_hash(type: type, plugins: plugins)
     File.write(output_asciidoc, content)
   end
 end
