@@ -204,7 +204,7 @@ class VersionedPluginDocs < Clamp::Command
     puts "Cloning Docs repository"
     `git clone --depth 1 https://github.com/elastic/docs #{docs_path}`
     puts "Running docs build.."
-    `perl #{docs_path}/build_docs --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
+    `#{docs_path}/build_docs --asciidoctor --respect_edit_url_overrides --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
     $?.exitstatus
   end
 
