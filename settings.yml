@@ -15,5 +15,6 @@ skip:
   - logstash-filter-anonymize # Incompatible with Logstash 6.x
   - logstash-filter-unique # Incompatible with Logstash 6.x
   - logstash-filter-multiline # Incompatible with Logstash 6.x
+  - logstash-output-monasca_log_api # Incomplete docs
   - logstash-input-rabbitmq # Provided by logstash-integration-rabbitmq
   - logstash-output-rabbitmq # Provided by logstash-integration-rabbitmq
