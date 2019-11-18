@@ -347,6 +347,8 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("<<plugins-#{type}s-#{name}", "<<{version}-plugins-#{type}s-#{name}")
       .gsub("[[dlq-policy]]", '[id="{version}-dlq-policy"]')
       .gsub("<<dlq-policy>>", '<<{version}-dlq-policy>>')
+      .gsub("[Kafka Input Plugin @9.1.0](https://github.com/logstash-plugins/logstash-input-rabbitmq/blob/v9.1.0/CHANGELOG.md)", "[Kafka Input Plugin @9.1.0](https://github.com/logstash-plugins/logstash-input-kafka/blob/v9.1.0/CHANGELOG.md)")
+      .gsub("[Kafka Output Plugin @8.1.0](https://github.com/logstash-plugins/logstash-output-rabbitmq/blob/v8.1.0/CHANGELOG.md)", "[Kafka Output Plugin @8.1.0](https://github.com/logstash-plugins/logstash-output-kafka/blob/v8.1.0/CHANGELOG.md)")
 
     if repair?
       content.gsub!(/<<plugins-.+?>>/) do |link|
