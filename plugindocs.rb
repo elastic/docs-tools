@@ -97,9 +97,6 @@ class PluginDocs < Clamp::Command
   # Support for plugins that are sourced outside the logstash-plugins org,
   # by means of the gem_data's `source_code_uri` metadata.
   def github_source_from_gem_data(gem_name, gem_data)
-    if gem_name == "logstash-integration-rabbitmq"
-      return Source::Github.new(org: "yaauie", repo: gem_name)
-    end
     known_source = gem_data.dig('source_code_uri')
 
     if known_source
