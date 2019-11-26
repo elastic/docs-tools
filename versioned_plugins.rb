@@ -18,7 +18,7 @@ class VersionedPluginDocs < Clamp::Command
   option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
   option "--latest-only", :flag, "Only generate documentation for latest version of each plugin", :default => false
   option "--repair", :flag, "Apply several heuristics to correct broken documentation", :default => false
-  option "--plugin-regex", "REGEX", "Only generate if plugin matches given regex", :default => "logstash-(?:codec|filter|input|output)"
+  option "--plugin-regex", "REGEX", "Only generate if plugin matches given regex", :default => "logstash-(?:codec|filter|input|output|integration)"
   option "--dry-run", :flag, "Don't create a commit or pull request against logstash-docs", :default => false
   option "--test", :flag, "Clone docs repo and test generated docs", :default => false
   option("--since", "STRING", "gems newer than this date", default: nil) { |v| v && Time.parse(v) }
@@ -100,9 +100,6 @@ class VersionedPluginDocs < Clamp::Command
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
     repos = (repos - PLUGIN_SKIP_LIST).sort.uniq.map {|repo| "logstash-plugins/#{repo}"}
-
-    # TODO: remove hack that adds non-org repo, or add official way to do so
-    repos << "yaauie/logstash-integration-rabbitmq"
 
     puts "found #{repos.size} repos"
 
