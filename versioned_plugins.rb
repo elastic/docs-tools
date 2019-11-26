@@ -101,9 +101,6 @@ class VersionedPluginDocs < Clamp::Command
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
     repos = (repos - PLUGIN_SKIP_LIST).sort.uniq.map {|repo| "logstash-plugins/#{repo}"}
 
-    # TODO: remove hack that adds non-org repo, or add official way to do so
-    repos << "yaauie/logstash-integration-rabbitmq"
-
     puts "found #{repos.size} repos"
 
     # TODO: make less convoluted
