@@ -54,11 +54,12 @@ BRANCH="update_docs_${T}"
 
 git checkout -b $BRANCH
 
-git add .
-
 git config user.email "jenkins@elastic.co"
 git config user.name "Logstash CI"
-git commit -m "updated docs for ${branch_specifier}"
+
+git status
+
+git commit -m "updated docs for ${branch_specifier}" -a
 
 git push origin $BRANCH
 
