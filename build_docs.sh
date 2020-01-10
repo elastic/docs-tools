@@ -57,6 +57,8 @@ git checkout -b $BRANCH
 git config user.email "jenkins@elastic.co"
 git config user.name "Logstash CI"
 
+git add .
+
 git status
 
 git commit -m "updated docs for ${branch_specifier}" -a
