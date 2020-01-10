@@ -44,6 +44,11 @@ class PluginDocs < Clamp::Command
                          "unreleased"
       changelog_url = released_plugin.changelog_url
 
+      if released_plugin.type == 'integration' && !is_default_plugin
+        $stderr.puts("[repository:#{repository_name}]: Skipping non-default Integration Plugin\n")
+        next
+      end
+
       released_plugin.with_embedded_plugins.each do |plugin|
         $stderr.puts("#{plugin.desc}: fetching documentation\n")
         content = plugin.documentation
@@ -71,7 +76,7 @@ class PluginDocs < Clamp::Command
         # write the doc
         File.write(output_asciidoc, content)
         puts "#{plugin.canonical_name}@#{plugin.tag}: #{release_date}\n"
-      end unless released_plugin.only_publish_default? && !is_default_plugin
+      end
     end
   end
 
