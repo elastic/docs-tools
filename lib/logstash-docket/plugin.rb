@@ -46,6 +46,10 @@ module LogstashDocket
       fail NotImplementedError
     end
 
+    def only_publish_default?
+      type == 'integration'
+    end
+
     ##
     # @return [Time,nil]
     def release_date
