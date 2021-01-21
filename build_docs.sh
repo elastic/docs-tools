@@ -15,8 +15,8 @@ fi
 
 set -x
 
-export JRUBY_OPTS="-J-Xmx6g"
-export GRADLE_OPTS="-Xmx6g -Dorg.gradle.daemon=false"
+export JRUBY_OPTS="-J-Xmx8g"
+export GRADLE_OPTS="-Xmx8g -Dorg.gradle.daemon=false"
 
 export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
