@@ -15,9 +15,6 @@ fi
 
 set -x
 
-export JRUBY_OPTS="-J-Xmx8g"
-export GRADLE_OPTS="-Xmx8g -Dorg.gradle.daemon=false"
-
 export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
 rbenv local jruby-9.1.12.0
@@ -36,7 +33,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-./gradlew generatePluginsVersion
+./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="-Xmx8g"
 
 cd ../docs-tools
 
