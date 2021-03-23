@@ -33,7 +33,7 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="-Xmx12g"
+./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="-Xmx4g"
 
 cd ../docs-tools
 
