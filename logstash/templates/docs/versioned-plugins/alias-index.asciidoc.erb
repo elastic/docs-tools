@@ -1,0 +1,17 @@
+:plugin:  <%= alias %>
+:type: <%= type %>
+
+[id="{type}-{plugin}-index"]
+
+== Versioned {plugin} {type} plugin
+[subs="attributes"]
+++++
+<titleabbrev>{plugin}</titleabbrev>
+++++
+
+The `<%= type %>-<%= alias %>` plugin is the next generation of the
+<<<%= type %>-<%= target %>-index,<%= type %>-<%= target %> plugin>>, and is based on the
+https://github.com/logstash-plugins/logstash-<%= type %>-<%= target %>[the same github repository].
+
+To see which plugin version you have installed, run
+`bin/logstash-plugin list --verbose`.
