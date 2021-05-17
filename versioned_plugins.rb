@@ -187,9 +187,10 @@ class VersionedPluginDocs < Clamp::Command
     end
 
     $stderr.puts("REINDEXING PLUGINS..load plugin aliases")
-    #TODO grab alias logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml
-    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/COPYING.csv')
-    alias_yml = Net::HTTP.get(uri)
+    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/275fd688e410534a34f0e173ab9eacf662bd9be5/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
+#     TODO enable once PR https://github.com/elastic/logstash/pull/12841 has been merged on master
+#     alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
+    alias_yml = Net::HTTP.get(alias_url)
     yaml = YAML::safe_load(alias_yml) || {}
 
     # list triples (type, alias, target) es: ("input", "agent", "beats")
@@ -198,11 +199,12 @@ class VersionedPluginDocs < Clamp::Command
     yaml.each do |type, alias_defs|
       alias_defs.each do |alias_name, target|
         if plugin_names_by_type.fetch(type).include?(target)
-          plugin_names_by_type.fetch(type).add(alias_name)
           aliases << [type, alias_name, target]
         end
       end
     end
+
+    aliases.each { |type, alias_name, _| plugin_names_by_type.fetch(type).add(alias_name) }
 
     # rewrite alias indices if target plugin was changed
     $stderr.puts("REINDEXING PLUGINS ALIASES... #{aliases.size}\n")
@@ -434,13 +436,13 @@ class VersionedPluginDocs < Clamp::Command
 
   def write_alias_index(type, alias_name, target)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/alias-index.asciidoc.erb"))
-    output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc"
-    lazy_create_output_folder
-    content = template.result_with_hash(type: type, alias: alias_name, target: target)
+    output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{alias_name}-index.asciidoc"
+    lazy_create_output_folder(output_asciidoc)
+    content = template.result_with_hash(type: type, alias_name: alias_name, target: target)
     File.write(output_asciidoc, content)
   end
 
-  def lazy_create_output_folder
+  def lazy_create_output_folder(output_asciidoc)
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
   end
