@@ -404,8 +404,7 @@ class VersionedPluginDocs < Clamp::Command
 
   def write_versions_index(name, type, versions)
     output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc"
-    directory = File.dirname(output_asciidoc)
-    FileUtils.mkdir_p(directory) if !File.directory?(directory)
+    lazy_create_output_folder(output_asciidoc)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/plugin-index.asciidoc.erb"))
     content = template.result_with_hash(name: name, type: type, versions: versions)
     File.write(output_asciidoc, content)
@@ -414,8 +413,7 @@ class VersionedPluginDocs < Clamp::Command
   def write_type_index(type, plugins)
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/type.asciidoc.erb"))
     output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s-index.asciidoc"
-    directory = File.dirname(output_asciidoc)
-    FileUtils.mkdir_p(directory) if !File.directory?(directory)
+    lazy_create_output_folder(output_asciidoc)
     content = template.result_with_hash(type: type, plugins: plugins)
     File.write(output_asciidoc, content)
   end
@@ -451,7 +449,7 @@ class VersionedPluginDocs < Clamp::Command
         end
       end
     end
-    
+
     aliases
   end
 end
