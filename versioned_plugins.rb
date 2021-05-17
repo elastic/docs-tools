@@ -187,23 +187,9 @@ class VersionedPluginDocs < Clamp::Command
     end
 
     $stderr.puts("REINDEXING PLUGINS..load plugin aliases")
-    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/275fd688e410534a34f0e173ab9eacf662bd9be5/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
-#     TODO enable once PR https://github.com/elastic/logstash/pull/12841 has been merged on master
-#     alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
-    alias_yml = Net::HTTP.get(alias_url)
-    yaml = YAML::safe_load(alias_yml) || {}
+    aliases = load_alias_definitions_for_target_plugins(plugin_names_by_type)
 
-    # list triples (type, alias, target) es: ("input", "agent", "beats")
-    aliases = []
-
-    yaml.each do |type, alias_defs|
-      alias_defs.each do |alias_name, target|
-        if plugin_names_by_type.fetch(type).include?(target)
-          aliases << [type, alias_name, target]
-        end
-      end
-    end
-
+    # add aliases named to the partitioned plugin names collection
     aliases.each { |type, alias_name, _| plugin_names_by_type.fetch(type).add(alias_name) }
 
     # rewrite alias indices if target plugin was changed
@@ -445,6 +431,28 @@ class VersionedPluginDocs < Clamp::Command
   def lazy_create_output_folder(output_asciidoc)
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
+  end
+
+  # param plugin_names_by_type: map of lists {:input => [beats, tcp, ...]}
+  # return list of triples (type, alias, target) es: ("input", "agent", "beats")
+  def load_alias_definitions_for_target_plugins(plugin_names_by_type)
+    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/275fd688e410534a34f0e173ab9eacf662bd9be5/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
+    # TODO enable once PR https://github.com/elastic/logstash/pull/12841 has been merged on master
+    # alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
+    alias_yml = Net::HTTP.get(alias_url)
+    yaml = YAML::safe_load(alias_yml) || {}
+
+    aliases = []
+
+    yaml.each do |type, alias_defs|
+      alias_defs.each do |alias_name, target|
+        if plugin_names_by_type.fetch(type).include?(target)
+          aliases << [type, alias_name, target]
+        end
+      end
+    end
+    
+    aliases
   end
 end
 
