@@ -51,7 +51,9 @@ BRANCH="update_docs_${T}"
 
 git checkout -b $BRANCH
 
-git config user.email "jenkins@elastic.co"
+# This email address is associated with the `logstashmachine` user's record in
+# the CLA Checker.
+git config user.email "43502315+logstashmachine@users.noreply.github.com"
 git config user.name "Logstash CI"
 
 git add .
