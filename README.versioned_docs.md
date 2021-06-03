@@ -3,6 +3,7 @@
 The versioned_plugins.rb ruby script crawls the github repositories of the "logstash-plugins" organization
 and generate the following structure:
 
+```
 docs/versioned-plugins
 ├── codecs
 │   ├── cef-index.asciidoc
@@ -24,10 +25,10 @@ docs/versioned-plugins
 │   ├── ruby-v3.1.3.asciidoc
 ├── filters-index.asciidoc
 ├── ...
-
+```
 #### Requirements
 
-* Ruby MRI 
+* Ruby MRI
 * Bundler
 * GitHub Personal Access Token with "public_repo" scope: https://github.com/settings/tokens/new
 * A clone of the logstash-docs repo: https://github.com/elastic/logstash-docs/
