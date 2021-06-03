@@ -434,9 +434,7 @@ class VersionedPluginDocs < Clamp::Command
   # param plugin_names_by_type: map of lists {:input => [beats, tcp, ...]}
   # return list of triples (type, alias, target) es: ("input", "agent", "beats")
   def load_alias_definitions_for_target_plugins(plugin_names_by_type)
-    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/275fd688e410534a34f0e173ab9eacf662bd9be5/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
-    # TODO enable once PR https://github.com/elastic/logstash/pull/12841 has been merged on master
-    # alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
+    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
     alias_yml = Net::HTTP.get(alias_url)
     yaml = YAML::safe_load(alias_yml) || {}
 
