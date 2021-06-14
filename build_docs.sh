@@ -33,7 +33,10 @@ git clone --depth 1 git@github.com:elastic/docs.git
 
 cd logstash
 
-./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="-Xmx12g"
+# we did not back-port https://github.com/elastic/logstash/pull/12763 to 6.8
+jvm_args="-Xmx4g" && [[ "$branch_specifier" == "6.8" ]] && jvm_args="-Xmx12g"
+
+./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="$jvm_args"
 
 cd ../docs-tools
 
