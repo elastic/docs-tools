@@ -21,7 +21,6 @@ class VersionedPluginDocs < Clamp::Command
   option "--repair", :flag, "Apply several heuristics to correct broken documentation", :default => false
   option "--plugin-regex", "REGEX", "Only generate if plugin matches given regex", :default => "logstash-(?:codec|filter|input|output|integration)"
   option "--dry-run", :flag, "Don't create a commit or pull request against logstash-docs", :default => false
-  option "--test", :flag, "Clone docs repo and test generated docs", :default => false
   option("--since", "STRING", "gems newer than this date", default: nil) { |v| v && Time.parse(v) }
   option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
 
@@ -55,22 +54,9 @@ class VersionedPluginDocs < Clamp::Command
     clone_docs_repo
     generate_docs
     if new_versions?
-      if test?
-        exit_status = test_docs
-        if exit_status == 0 # success
-          puts "success!"
-        else
-          puts "failed to build docs :("
-          unless dry_run?
-            puts "submitting PR for manual fixing."
-            submit_pr
-          end
-          exit exit_status
-        end
-      end
       unless dry_run?
-        puts "commiting to logstash-docs"
-        commit
+        puts "creating pull request.."
+        submit_pr
       end
     else
       puts "No new versions detected. Exiting.."
@@ -241,34 +227,27 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def submit_pr
-    #branch_name = "versioned_docs_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
-    branch_name = "versioned_docs_failed_build"
+    branch_name = "versioned_docs_new_content"
+    octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
+    if branch_exists?(octo, branch_name)
+      puts "WARNING: Branch \"#{branch_name}\" already exists. Not creating a new PR. Please merge the existing PR or delete the PR and the branch."
+      return
+    end
     Dir.chdir(logstash_docs_path) do |path|
       `git checkout -b #{branch_name}`
       `git add .`
       `git commit -m "updated versioned plugin docs" -a`
       `git push origin #{branch_name}`
     end
-    octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
     octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
         "auto generated update of versioned plugin documentation", "")
   end
 
-  def commit
-    Dir.chdir(logstash_docs_path) do |path|
-      `git checkout versioned_plugin_docs`
-      `git add .`
-      `git commit -m "updated versioned plugin docs" -a`
-      `git push origin versioned_plugin_docs`
-    end
-  end
-
-  def test_docs
-    puts "Cloning Docs repository"
-    `git clone --depth 1 https://github.com/elastic/docs #{docs_path}`
-    puts "Running docs build.."
-    `#{docs_path}/build_docs --asciidoctor --respect_edit_url_overrides --doc #{logstash_docs_path}/docs/versioned-plugins/index.asciidoc --chunk 1`
-    $?.exitstatus
+  def branch_exists?(client, branch_name)
+    client.branch("elastic/logstash-docs", branch_name)
+    true
+  rescue Octokit::NotFound
+    false
   end
 
   ##
