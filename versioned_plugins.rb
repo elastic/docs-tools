@@ -310,7 +310,7 @@ class VersionedPluginDocs < Clamp::Command
 
     if repair?
       content = content.gsub(/^====== /, "===== ")
-        .gsub("[source]", "[source,shell]")
+        .gsub(/^\[source\]$/, "[source,shell]")
         .gsub('[id="plugins-{type}-{plugin}', '[id="plugins-{type}s-{plugin}')
         .gsub(":include_path: ../../../logstash/docs/include", ":include_path: ../include/6.x")
         .gsub(/[\t\r ]+$/,"")
