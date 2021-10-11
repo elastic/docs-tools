@@ -11,7 +11,7 @@ require_relative 'lib/logstash-docket'
 
 class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
-  option "--master", :flag, "Fetch the plugin's docs from master instead of the version found in PLUGINS_JSON", :default => false
+  option "--main", :flag, "Fetch the plugin's docs from main instead of the version found in PLUGINS_JSON", :default => false
   option "--settings", "SETTINGS_YAML", "Path to the settings file.", :default => File.join(File.dirname(__FILE__), "settings.yml"), :attribute_name => :settings_path
   option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
 

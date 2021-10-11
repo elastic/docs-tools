@@ -30,7 +30,7 @@ module LogstashDocket
     # the optionally-provided version as a hint.
     #
     # @param gem_name [String]
-    # @param version [String, nil]: (optional: when omitted, source's master will
+    # @param version [String, nil]: (optional: when omitted, source's main will
     #                               be used with the latest-available published gem metadata)
     #
     # @yieldparam [Hash{String=>Object}]: gem metadata
@@ -94,7 +94,7 @@ module LogstashDocket
     ##
     # @see Plugin#tag
     def tag
-      version ? "v#{version}" : "master"
+      version ? "v#{version}" : "main"
     end
 
     ##

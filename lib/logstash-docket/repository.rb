@@ -116,7 +116,7 @@ module LogstashDocket
     #
     # @param version [String]: the version to fetch from rubygems (optional: when
     #   omitted or provided explicitly as `nil`, the resulting {@link Plugin} will
-    #   be an approximation of the repository's `master` using the latest release's\
+    #   be an approximation of the repository's `main` using the latest release's\
     #   metadata).
     def released_plugin(version)
       @plugin_versions.fetch(version)

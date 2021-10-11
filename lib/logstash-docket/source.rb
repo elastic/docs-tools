@@ -90,7 +90,7 @@ module LogstashDocket
       private
 
       def ref(version)
-        version ? "v#{version}" : 'master'
+        version ? "v#{version}" : 'main'
       end
     end
   end
