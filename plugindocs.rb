@@ -32,7 +32,7 @@ class PluginDocs < Clamp::Command
       end
 
       is_default_plugin = details["from"] == "default"
-      version = master? ? nil : details['version']
+      version = main? ? nil : details['version']
 
       released_plugin = ArtifactPlugin.from_rubygems(repository_name, version) do |gem_data|
         github_source_from_gem_data(repository_name, gem_data)
@@ -117,7 +117,7 @@ class PluginDocs < Clamp::Command
   end
 
   def tag(version)
-    version ? "v#{version}" : "master"
+    version ? "v#{version}" : "main"
   end
 end
 
