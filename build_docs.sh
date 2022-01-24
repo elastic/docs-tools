@@ -36,7 +36,13 @@ cd logstash
 # we did not back-port https://github.com/elastic/logstash/pull/12763 to 6.8
 jvm_args="-Xmx4g" && [[ "$branch_specifier" == "6.8" ]] && jvm_args="-Xmx12g"
 
-./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="$jvm_args"
+export GRADLE_OPTS="-Dorg.gradle.jvmargs=\"$jvm_args\""
+
+if [ -n "$BUILD_JAVA_HOME" ]; then
+  GRADLE_OPTS="$GRADLE_OPTS -Dorg.gradle.java.home=$BUILD_JAVA_HOME"
+fi
+
+./gradlew generatePluginsVersion
 
 cd ../docs-tools
 
