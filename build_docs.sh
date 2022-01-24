@@ -36,7 +36,7 @@ cd logstash
 # we did not back-port https://github.com/elastic/logstash/pull/12763 to 6.8
 jvm_args="-Xmx4g" && [[ "$branch_specifier" == "6.8" ]] && jvm_args="-Xmx12g"
 
-./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="$jvm_args"
+./gradlew generatePluginsVersion -Dorg.gradle.jvmargs="$jvm_args" -Dorg.gradle.java.home="/var/lib/jenkins/.java/java11"
 
 cd ../docs-tools
 
