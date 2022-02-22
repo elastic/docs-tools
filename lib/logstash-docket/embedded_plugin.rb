@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 require_relative 'plugin'
+require 'set'
 
 module LogstashDocket
   ##

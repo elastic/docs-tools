@@ -3,6 +3,7 @@
 require_relative 'embedded_plugin'
 require_relative 'plugin'
 require_relative 'repository'
+require 'set'
 
 module LogstashDocket
 
