@@ -1,44 +1,44 @@
-
 require "clamp"
+require "yaml"
 
 require_relative 'lib/logstash-docket'
 
 class AliasedPluginDocGenerator < Clamp::Command
-  option "--path", "PATH", "The path aliased plugins located.", required: true
-  option "--alias-type", "ALIAS_TYPE", "Type of the alias to generate a doc.", required: true
+  option "--path", "PATH", "The path aliased plugins documents located.", required: true
 
-  ALIAS_PLUGINS = {
-    "beats" => {
-      "plugin_type" => "inputs",
-      "files" => {
-        "input_file" => "beats.asciidoc",
-        "output_file" => "elastic_agent.asciidoc"
-      },
-      "replaces" => {
-        ":plugin: beats" => ":plugin: elastic_agent",
-        ":plugin-uc: Beats" => ":plugin-uc: Elastic Agent",
-        ":plugin-singular: Beat" => ":plugin-singular: Elastic Agent"
-      }
-    }
-  }
+  ALIAS_DEFINITION_URL = 'https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml'
+  ASCII_DOC_EXTENSION = ".asciidoc"
 
   def execute
-    if ALIAS_PLUGINS.include?alias_type
-      puts "Generating a doc for #{alias_type}.\n"
+    aliased_plugins = load_alias_plugin_definition
+    aliased_plugins.each do | type, alias_name, target |
+      input_file = path + "/" + type + "s/" + target + ASCII_DOC_EXTENSION
+      output_file = path + "/" + type + "s/" + alias_name + ASCII_DOC_EXTENSION
 
-      file_path = path + "/" + ALIAS_PLUGINS[alias_type]["plugin_type"] + "/"
-      input_file = file_path + ALIAS_PLUGINS[alias_type]["files"]["input_file"]
-      output_file = file_path + ALIAS_PLUGINS[alias_type]["files"]["output_file"]
+      copy_from_content = File.readlines(input_file)
+      copy_to_content = File.readlines(output_file)
 
-      puts "Input file: #{input_file}.\n"
-      content = File.read(input_file)
-      ALIAS_PLUGINS[alias_type]["replaces"].each { | key, value | content = content.gsub(key, value) }
+      # keep plugin header information
+      (0..5).each { |i|
+        copy_from_content[i] = copy_to_content[i]
+      }
 
-      puts "Output file: #{output_file}.\n"
-      File.write(output_file, content)
-    else
-      puts "Could not find a plugin for alias: #{alias_type}.\n"
+      File.open(output_file, 'w') { |f| f.write(copy_from_content.join) }
     end
+  end
+
+  def load_alias_plugin_definition
+    alias_yml = Net::HTTP.get(URI(ALIAS_DEFINITION_URL))
+    yaml = YAML::safe_load(alias_yml) || {}
+    aliases = []
+
+    yaml.each do |type, alias_defs|
+      alias_defs.each do |alias_name, target|
+        aliases << [type, alias_name, target]
+      end
+    end
+
+    aliases
   end
 end
 
