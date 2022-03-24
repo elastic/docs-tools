@@ -17,6 +17,8 @@ class PluginDocs < Clamp::Command
 
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
 
+  ALIAS_MAPPINGS_URL = 'https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml'
+
   include LogstashDocket
 
   def execute
@@ -24,6 +26,8 @@ class PluginDocs < Clamp::Command
 
     report = JSON.parse(File.read(plugins_json))
     repositories = report["successful"]
+
+    alias_mappings = load_alias_mappings
 
     repositories.peach(parallelism) do |repository_name, details|
       if settings['skip'].include?(repository_name)
@@ -49,7 +53,7 @@ class PluginDocs < Clamp::Command
         next
       end
 
-      released_plugin.with_embedded_plugins.each do |plugin|
+      released_plugin.with_wrapped_plugins(alias_mappings).each do |plugin|
         $stderr.puts("#{plugin.desc}: fetching documentation\n")
         content = plugin.documentation
 
@@ -119,6 +123,25 @@ class PluginDocs < Clamp::Command
   def tag(version)
     version ? "v#{version}" : "main"
   end
+
+  # returns alias mappings for each plugin type & name ([type][target]=alias) ex: (["input"]["beats"]="agent")
+  def load_alias_mappings
+    alias_yml = Net::HTTP.get(URI(ALIAS_MAPPINGS_URL))
+    yaml = YAML::safe_load(alias_yml) || {}
+
+    aliases = Hash.new
+
+    yaml.each do |type, alias_defs|
+      aliases[type] = Hash.new
+      alias_defs.each do |alias_name, target|
+        aliases[type][target] = alias_name
+      end
+    end
+
+    aliases
+  end
+
+
 end
 
 if __FILE__ == $0

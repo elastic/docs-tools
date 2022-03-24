@@ -78,6 +78,14 @@ module LogstashDocket
       fail NotImplementedError
     end
 
+    def with_alias(alias_mappings)
+      yield self
+
+      if alias_mappings.include?(type) && alias_mappings[type].include?(name)
+        yield AliasPlugin.new(canonical_plugin: self, alias_name: alias_mappings[type][name])
+      end
+    end
+
     ##
     # @return [Boolean]
     def ==(other)

@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 require_relative 'embedded_plugin'
+require_relative 'aliased_plugin'
 require_relative 'plugin'
 require_relative 'repository'
 require 'set'
@@ -71,7 +72,7 @@ module LogstashDocket
       @repository = repository
       @version = version && Gem::Version.new(version)
 
-      @embedded_plugins = Util::ThreadsafeDeferral.for(&method(:generate_embeded_plugins))
+      @embedded_plugins = Util::ThreadsafeDeferral.for(&method(:generate_embedded_plugins))
     end
 
     ##
@@ -105,7 +106,7 @@ module LogstashDocket
     end
 
     ##
-    # Returns an {@link Enumerable[Plugin]} containing itself and any wrapped plugins
+    # Returns an {@link Enumerable[Plugin]} containing itself and any integrated plugins
     #
     # @return [Enumerable[Plugin]]
     def with_embedded_plugins
@@ -115,6 +116,20 @@ module LogstashDocket
 
       embedded_plugins.each do |embedded_plugin|
         yield embedded_plugin
+      end
+    end
+
+    ##
+    # Returns an {@link Enumerable[Plugin]} containing itself and any wrapped plugins
+    #
+    # @return [Enumerable[Plugin]]
+    def with_wrapped_plugins(alias_mappings)
+      return enum_for(:with_wrapped_plugins, alias_mappings) unless block_given?
+
+      with_embedded_plugins do |plugin|
+        plugin.with_alias(alias_mappings) do |aliased_plugin|
+          yield aliased_plugin
+        end
       end
     end
 
@@ -144,7 +159,7 @@ module LogstashDocket
     # @api private
     #
     # @return [Array[EmbeddedPlugin]]: a frozen array of {@link EmbeddedPlugin}
-    def generate_embeded_plugins
+    def generate_embedded_plugins
       gem_data_version = version || repository.rubygem_info.latest
       gem_data_version || fail("No releases on rubygems")
 
