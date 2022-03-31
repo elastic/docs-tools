@@ -78,7 +78,7 @@ class PluginDocs < Clamp::Command
         # For this case, we skip to accept the changes.
         # eg: https://github.com/elastic/logstash-docs/pull/983/commits
         if skip_existing? && File.exist?(output_asciidoc) \
-            && is_no_version_bump(output_asciidoc, content)
+            && no_version_bump?(output_asciidoc, content)
           $stderr.puts("#{plugin.desc}: skipping since no version bump and doc exists.\n")
           next
         end
@@ -136,9 +136,9 @@ class PluginDocs < Clamp::Command
   # @param output_asciidoc [String]
   # @param content [String]
   # @return [Boolean]
-  def is_no_version_bump(output_asciidoc, content)
+  def no_version_bump?(output_asciidoc, content)
     existing_file_content = File.read(output_asciidoc)
-    version_fetch_regex = /\:version: (.*?)\n/
+    version_fetch_regex = /^\:version: (.*?)\n/
     existing_file_content[version_fetch_regex, 1] == content[version_fetch_regex, 1]
   end
 end
