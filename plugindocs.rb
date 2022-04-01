@@ -14,6 +14,7 @@ class PluginDocs < Clamp::Command
   option "--main", :flag, "Fetch the plugin's docs from main instead of the version found in PLUGINS_JSON", :default => false
   option "--settings", "SETTINGS_YAML", "Path to the settings file.", :default => File.join(File.dirname(__FILE__), "settings.yml"), :attribute_name => :settings_path
   option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
+  option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
 
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
 
@@ -73,6 +74,15 @@ class PluginDocs < Clamp::Command
         injection_variables[:default_plugin] = (is_default_plugin ? 1 : 0)
         content = inject_variables(content, injection_variables)
 
+        # Even if no version bump, sometimes generating content might be different.
+        # For this case, we skip to accept the changes.
+        # eg: https://github.com/elastic/logstash-docs/pull/983/commits
+        if skip_existing? && File.exist?(output_asciidoc) \
+            && no_version_bump?(output_asciidoc, content)
+          $stderr.puts("#{plugin.desc}: skipping since no version bump and doc exists.\n")
+          next
+        end
+
         # write the doc
         File.write(output_asciidoc, content)
         puts "#{plugin.canonical_name}@#{plugin.tag}: #{release_date}\n"
@@ -118,6 +128,18 @@ class PluginDocs < Clamp::Command
 
   def tag(version)
     version ? "v#{version}" : "main"
+  end
+
+  ##
+  # Checks if no version bump and return true if so, false otherwise.
+  #
+  # @param output_asciidoc [String]
+  # @param content [String]
+  # @return [Boolean]
+  def no_version_bump?(output_asciidoc, content)
+    existing_file_content = File.read(output_asciidoc)
+    version_fetch_regex = /^\:version: (.*?)\n/
+    existing_file_content[version_fetch_regex, 1] == content[version_fetch_regex, 1]
   end
 end
 
