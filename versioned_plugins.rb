@@ -435,25 +435,25 @@ class VersionedPluginDocs < Clamp::Command
 
   def fetch_stack_versions
     stack_versions = Net::HTTP.get(URI.parse(VERSIONS_URL))
-    puts "Logstash version: #{get_logstash_version(stack_versions)}\n"
-    puts "ECS version: #{get_ecs_version(stack_versions)}\n"
+    @logstash_version = get_logstash_version(stack_versions)
+    puts "Logstash version: #{@logstash_version}\n"
+
+    @ecs_version = get_ecs_version(stack_versions)
+    puts "ECS version: #{@ecs_version}\n"
   end
 
   def get_logstash_version(stack_versions)
-    version = stack_versions[/\:logstash_version: (.*?)\n/, 1]
-    @logstash_version = version.strip unless version.nil?
+    stack_versions[/\:logstash_version:\s+(.*?)\n/, 1]
   end
 
   def get_ecs_version(stack_versions)
-    version = stack_versions[/\:ecs_version: (.*?)\n/, 1]
-    @ecs_version = version.strip unless version.nil?
+    stack_versions[/\:ecs_version:\s+(.*?)\n/, 1]
   end
 
   def write_stack_versions(content, type)
     # BRANCH and ECS_VERSION are newly added, will be available when every plugin index docs are re-indexed.
     # This is a backfill logic to add the fields after :type: entry
-    match = content.match(/\[":branch: %BRANCH%"\]/)
-    if (match.nil?)
+    if content =~ /\[":branch: %BRANCH%"\]/
       type_entry = ":type: #{type}\n"
       logstash_version_entry = ":branch: %BRANCH%\n"
       ecs_version_entry = ":ecs_version: %ECS_VERSION%\n"
