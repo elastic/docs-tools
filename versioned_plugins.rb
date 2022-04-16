@@ -2,17 +2,14 @@ require "clamp"
 require "json"
 require "fileutils"
 require "time"
-require "yaml"
-require "net/http"
 require "stud/try"
 require "octokit"
 require "erb"
 require "pmap"
-require "yaml"
-
-require_relative 'lib/logstash-docket'
 
 require_relative 'lib/core_ext/erb_result_with_hash'
+require_relative 'lib/logstash-docket'
+require_relative 'lib/logstash-docket/util/alias_plugin_util'
 
 class VersionedPluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
@@ -413,16 +410,15 @@ class VersionedPluginDocs < Clamp::Command
   # param plugin_names_by_type: map of lists {:input => [beats, tcp, ...]}
   # return list of triples (type, alias, target) es: ("input", "agent", "beats")
   def load_alias_definitions_for_target_plugins(plugin_names_by_type)
-    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
-    alias_yml = Net::HTTP.get(alias_url)
-    yaml = YAML::safe_load(alias_yml) || {}
+    alias_plugin_util = Util::AliasPluginUtil.new
+    yaml = alias_plugin_util.fetch_alias_mappings
 
     aliases = []
 
     yaml.each do |type, alias_defs|
-      alias_defs.each do |alias_name, target|
-        if plugin_names_by_type.fetch(type).include?(target)
-          aliases << [type, alias_name, target]
+      alias_defs.each do |alias_definition|
+        if plugin_names_by_type.fetch(type).include?(alias_definition["from"])
+          aliases << [type, alias_definition["alias"], alias_definition["from"]]
         end
       end
     end

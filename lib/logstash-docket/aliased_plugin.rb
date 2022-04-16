@@ -10,9 +10,9 @@ module LogstashDocket
 
     include Plugin
 
-    attr_reader :canonical_plugin
+    attr_reader :canonical_plugin, :doc_headers
 
-    def initialize(canonical_plugin:, alias_name:)
+    def initialize(canonical_plugin:, alias_name:, doc_headers:)
       fail(ArgumentError) unless canonical_plugin.kind_of?(ArtifactPlugin)
 
       super(type: canonical_plugin.type, name: alias_name)
@@ -20,6 +20,7 @@ module LogstashDocket
       fail("#{canonical_plugin.desc} plugin type #{type} not supported as an integration plugin") unless SUPPORTED_TYPES.include?(type)
 
       @canonical_plugin = canonical_plugin
+      @doc_headers = doc_headers
     end
 
     ##
@@ -30,20 +31,7 @@ module LogstashDocket
 
     def documentation
       content = @canonical_plugin.documentation
-
-      # TODO: control the hard codings through central management for the long term
-      # we had a discussion with Ry, we will manipulate these params through logstash repo AliasRegistry.yml
-      # this will be covered by https://github.com/elastic/docs-tools/issues/69
-      case name
-      when "elastic_agent"
-        replaces = {
-          ":plugin: beats" => ":plugin: elastic_agent",
-          ":plugin-uc: Beats" => ":plugin-uc: Elastic Agent",
-          ":plugin-singular: Beat" => ":plugin-singular: Elastic Agent"
-        }
-        replaces.each { |key, value| content = content.gsub(key, value) }
-      end
-
+      @doc_headers.each { |header| content = content.gsub(header["replace"], header["with"]) }
       content
     end
 

@@ -3,21 +3,20 @@ require "json"
 require "fileutils"
 require "time"
 require "yaml"
-require "net/http"
 require "stud/try"
 require "pmap" # Enumerable#peach
 
 require_relative 'lib/logstash-docket'
+require_relative 'lib/logstash-docket/util/alias_plugin_util'
 
 class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
   option "--main", :flag, "Fetch the plugin's docs from main instead of the version found in PLUGINS_JSON", :default => false
   option "--settings", "SETTINGS_YAML", "Path to the settings file.", :default => File.join(File.dirname(__FILE__), "settings.yml"), :attribute_name => :settings_path
   option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
+  option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
 
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
-
-  ALIAS_MAPPINGS_URL = 'https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml'
 
   include LogstashDocket
 
@@ -77,6 +76,15 @@ class PluginDocs < Clamp::Command
         injection_variables[:default_plugin] = (is_default_plugin ? 1 : 0)
         content = inject_variables(content, injection_variables)
 
+        # Even if no version bump, sometimes generating content might be different.
+        # For this case, we skip to accept the changes.
+        # eg: https://github.com/elastic/logstash-docs/pull/983/commits
+        if skip_existing? && File.exist?(output_asciidoc) \
+            && no_version_bump?(output_asciidoc, content)
+          $stderr.puts("#{plugin.desc}: skipping since no version bump and doc exists.\n")
+          next
+        end
+
         # write the doc
         File.write(output_asciidoc, content)
         puts "#{plugin.canonical_name}@#{plugin.tag}: #{release_date}\n"
@@ -126,22 +134,36 @@ class PluginDocs < Clamp::Command
 
   # returns alias mappings for each plugin type & name ([type][target]=alias) ex: (["input"]["beats"]="agent")
   def load_alias_mappings
-    alias_yml = Net::HTTP.get(URI(ALIAS_MAPPINGS_URL))
-    yaml = YAML::safe_load(alias_yml) || {}
+    alias_util = Util::AliasPluginUtil.new
+    yaml = alias_util.fetch_alias_mappings
 
     aliases = Hash.new
 
     yaml.each do |type, alias_defs|
       aliases[type] = Hash.new
-      alias_defs.each do |alias_name, target|
-        aliases[type][target] = alias_name
+      alias_defs.each do |alias_definition|
+        mapping = {}
+        mapping["alias"] = alias_definition["alias"]
+        mapping["doc_headers"] = alias_definition["docs"]
+        aliases[type][alias_definition["from"]] ||= []
+        aliases[type][alias_definition["from"]] << mapping
       end
     end
 
     aliases
   end
 
-
+  ##
+  # Checks if no version bump and return true if so, false otherwise.
+  #
+  # @param output_asciidoc [String]
+  # @param content [String]
+  # @return [Boolean]
+  def no_version_bump?(output_asciidoc, content)
+    existing_file_content = File.read(output_asciidoc)
+    version_fetch_regex = /^\:version: (.*?)\n/
+    existing_file_content[version_fetch_regex, 1] == content[version_fetch_regex, 1]
+  end
 end
 
 if __FILE__ == $0

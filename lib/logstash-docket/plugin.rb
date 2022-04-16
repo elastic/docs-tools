@@ -82,7 +82,11 @@ module LogstashDocket
       yield self
 
       if alias_mappings.include?(type) && alias_mappings[type].include?(name)
-        yield AliasPlugin.new(canonical_plugin: self, alias_name: alias_mappings[type][name])
+        alias_mappings[type][name].each do |alias_name|
+          yield AliasPlugin.new(canonical_plugin: self,
+                                alias_name: alias_name["alias"],
+                                doc_headers: alias_name["doc_headers"])
+        end
       end
     end
 

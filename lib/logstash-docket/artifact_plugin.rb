@@ -127,8 +127,8 @@ module LogstashDocket
       return enum_for(:with_wrapped_plugins, alias_mappings) unless block_given?
 
       with_embedded_plugins do |plugin|
-        plugin.with_alias(alias_mappings) do |aliased_plugin|
-          yield aliased_plugin
+        plugin.with_alias(alias_mappings) do |plugin_or_alias|
+          yield plugin_or_alias
         end
       end
     end
