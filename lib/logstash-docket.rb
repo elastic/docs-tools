@@ -12,3 +12,4 @@ end
 require_relative 'logstash-docket/repository'
 require_relative 'logstash-docket/util/threadsafe_index'
 require_relative 'logstash-docket/util/threadsafe_wrapper'
+require_relative 'logstash-docket/util/alias_definitions_loader'

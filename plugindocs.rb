@@ -7,7 +7,6 @@ require "stud/try"
 require "pmap" # Enumerable#peach
 
 require_relative 'lib/logstash-docket'
-require_relative 'lib/logstash-docket/util/alias_plugin_util'
 
 class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
@@ -26,7 +25,7 @@ class PluginDocs < Clamp::Command
     report = JSON.parse(File.read(plugins_json))
     repositories = report["successful"]
 
-    alias_mappings = load_alias_mappings
+    alias_definitions = Util::AliasDefinitionsLoader.new.get_alias_definitions
 
     repositories.peach(parallelism) do |repository_name, details|
       if settings['skip'].include?(repository_name)
@@ -52,7 +51,7 @@ class PluginDocs < Clamp::Command
         next
       end
 
-      released_plugin.with_wrapped_plugins(alias_mappings).each do |plugin|
+      released_plugin.with_wrapped_plugins(alias_definitions).each do |plugin|
         $stderr.puts("#{plugin.desc}: fetching documentation\n")
         content = plugin.documentation
 
@@ -130,27 +129,6 @@ class PluginDocs < Clamp::Command
 
   def tag(version)
     version ? "v#{version}" : "main"
-  end
-
-  # returns alias mappings for each plugin type & name ([type][target]=alias) ex: (["input"]["beats"]="agent")
-  def load_alias_mappings
-    alias_util = Util::AliasPluginUtil.new
-    yaml = alias_util.fetch_alias_mappings
-
-    aliases = Hash.new
-
-    yaml.each do |type, alias_defs|
-      aliases[type] = Hash.new
-      alias_defs.each do |alias_definition|
-        mapping = {}
-        mapping["alias"] = alias_definition["alias"]
-        mapping["doc_headers"] = alias_definition["docs"]
-        aliases[type][alias_definition["from"]] ||= []
-        aliases[type][alias_definition["from"]] << mapping
-      end
-    end
-
-    aliases
   end
 
   ##

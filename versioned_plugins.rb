@@ -9,7 +9,6 @@ require "pmap"
 
 require_relative 'lib/core_ext/erb_result_with_hash'
 require_relative 'lib/logstash-docket'
-require_relative 'lib/logstash-docket/util/alias_plugin_util'
 
 class VersionedPluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
@@ -169,17 +168,23 @@ class VersionedPluginDocs < Clamp::Command
       end
     end
 
-    $stderr.puts("REINDEXING PLUGINS..load plugin aliases")
-    aliases = load_alias_definitions_for_target_plugins(plugin_names_by_type)
+    $stderr.puts("REINDEXING PLUGINS, loading plugin aliases...")
+    alias_definitions_by_type = Util::AliasDefinitionsLoader.new.get_alias_definitions
 
     # add aliases named to the partitioned plugin names collection
-    aliases.each { |type, alias_name, _| plugin_names_by_type.fetch(type).add(alias_name) }
+    alias_definitions_by_type.each do |type, alias_definitions|
+      alias_definitions.each do |alias_definition|
+        plugin_names_by_type.fetch(type).add(alias_definition.fetch("alias"))
+      end
+    end
 
     # rewrite alias indices if target plugin was changed
-    $stderr.puts("REINDEXING PLUGINS ALIASES... #{aliases.size}\n")
-    aliases.each do |type, alias_name, target|
-      $stderr.puts("[plugin:#{alias_name}] reindexing\n")
-      write_alias_index(type, alias_name, target)
+    $stderr.puts("REINDEXING PLUGINS ALIASES... #{alias_definitions_by_type.size}\n")
+    alias_definitions_by_type.each do |type, alias_definitions|
+      alias_definitions.each do |alias_definition|
+        $stderr.puts("[plugin:#{alias_definition.fetch("alias")}] reindexing\n")
+        write_alias_index(type, alias_definition.fetch("alias"), alias_definition.fetch("from"))
+      end
     end
 
     # rewrite incomplete plugin indices
@@ -405,25 +410,6 @@ class VersionedPluginDocs < Clamp::Command
   def lazy_create_output_folder(output_asciidoc)
     directory = File.dirname(output_asciidoc)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
-  end
-
-  # param plugin_names_by_type: map of lists {:input => [beats, tcp, ...]}
-  # return list of triples (type, alias, target) es: ("input", "agent", "beats")
-  def load_alias_definitions_for_target_plugins(plugin_names_by_type)
-    alias_plugin_util = Util::AliasPluginUtil.new
-    yaml = alias_plugin_util.fetch_alias_mappings
-
-    aliases = []
-
-    yaml.each do |type, alias_defs|
-      alias_defs.each do |alias_definition|
-        if plugin_names_by_type.fetch(type).include?(alias_definition["from"])
-          aliases << [type, alias_definition["alias"], alias_definition["from"]]
-        end
-      end
-    end
-
-    aliases
   end
 end
 

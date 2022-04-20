@@ -120,14 +120,14 @@ module LogstashDocket
     end
 
     ##
-    # Returns an {@link Enumerable[Plugin]} containing itself and any wrapped plugins
+    # Returns an {@link Enumerable[Plugin]} containing itself and any wrapped plugins,
+    # including integration-wrapped plugins and aliases from the provided mappings
     #
-    # @return [Enumerable[Plugin]]
-    def with_wrapped_plugins(alias_mappings)
-      return enum_for(:with_wrapped_plugins, alias_mappings) unless block_given?
+    def with_wrapped_plugins(alias_definitions)
+      return enum_for(:with_wrapped_plugins, alias_definitions) unless block_given?
 
       with_embedded_plugins do |plugin|
-        plugin.with_alias(alias_mappings) do |plugin_or_alias|
+        plugin.with_alias(alias_definitions) do |plugin_or_alias|
           yield plugin_or_alias
         end
       end
