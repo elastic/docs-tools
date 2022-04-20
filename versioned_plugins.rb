@@ -32,6 +32,8 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-codec-java_codec_example"
   ]
 
+  VERSIONS_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/master.asciidoc"
+
   def logstash_docs_path
     File.join(output_path, "logstash-docs")
   end
@@ -40,7 +42,7 @@ class VersionedPluginDocs < Clamp::Command
     File.join(output_path, "docs")
   end
 
-  attr_reader :octo
+  attr_reader :octo, :logstash_version, :ecs_version
 
   include LogstashDocket
 
@@ -48,6 +50,7 @@ class VersionedPluginDocs < Clamp::Command
     setup_github_client
     check_rate_limit!
     clone_docs_repo
+    fetch_stack_versions
     generate_docs
     if new_versions?
       unless dry_run?
@@ -376,7 +379,7 @@ class VersionedPluginDocs < Clamp::Command
       end
     end
 
-    content
+    write_stack_versions(content, type)
   end
 
   def versions_index_exists?(name, type)
@@ -407,10 +410,46 @@ class VersionedPluginDocs < Clamp::Command
     File.write(output_asciidoc, content)
   end
 
-  def lazy_create_output_folder(output_asciidoc)
-    directory = File.dirname(output_asciidoc)
+  def lazy_create_output_folder(file_name)
+    directory = File.dirname(file_name)
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
   end
+
+  def fetch_stack_versions
+    stack_versions = Net::HTTP.get(URI.parse(VERSIONS_URL))
+    @logstash_version = get_logstash_version(stack_versions)
+    puts "Logstash version: #{@logstash_version}\n"
+
+    @ecs_version = get_ecs_version(stack_versions)
+    puts "ECS version: #{@ecs_version}\n"
+  end
+
+  def get_logstash_version(stack_versions)
+    stack_versions[/\:logstash_version:\s+(.*?)\n/, 1]
+  end
+
+  def get_ecs_version(stack_versions)
+    stack_versions[/\:ecs_version:\s+(.*?)\n/, 1]
+  end
+
+  def write_stack_versions(content, type)
+    # BRANCH and ECS_VERSION are newly added, will be available when every plugin index docs are re-indexed.
+    # This is a backfill logic to add the fields after :type: entry
+    if content =~ /\[":branch: %BRANCH%"\]/
+      type_entry = ":type: #{type}\n"
+      logstash_version_entry = ":branch: %BRANCH%\n"
+      ecs_version_entry = ":ecs_version: %ECS_VERSION%\n"
+      index = content.index(type_entry)
+      index = index + type_entry.length
+      content.insert(index, logstash_version_entry)
+      content.insert(index + logstash_version_entry.length, ecs_version_entry)
+    end
+
+    content = content \
+      .gsub("%BRANCH%", @logstash_version) \
+      .gsub("%ECS_VERSION%", @ecs_version)
+  end
+
 end
 
 if __FILE__ == $0
