@@ -172,7 +172,7 @@ class VersionedPluginDocs < Clamp::Command
     end
 
     $stderr.puts("REINDEXING PLUGINS, loading plugin aliases...")
-    alias_definitions_by_type = Util::AliasDefinitionsLoader.new.get_alias_definitions
+    alias_definitions_by_type = Util::AliasDefinitionsLoader.get_alias_definitions
 
     # add aliases named to the partitioned plugin names collection
     alias_definitions_by_type.each do |type, alias_definitions|

@@ -6,9 +6,9 @@ require "net/http"
 module LogstashDocket
   module Util
     ##
-    # A util class defines repetitive logics for aliased plugins.
+    # A util module defines repetitive logics for aliased plugins.
     #
-    class AliasDefinitionsLoader
+    module AliasDefinitionsLoader
 
       ALIAS_DEFINITIONS_URL = 'https://raw.githubusercontent.com/elastic/logstash/main/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml'
 
@@ -25,7 +25,7 @@ module LogstashDocket
       #     }]
       #   ]
       # }
-      def get_alias_definitions
+      def self.get_alias_definitions
         YAML::safe_load(Net::HTTP.get(URI(ALIAS_DEFINITIONS_URL))) || fail('empty alias definition')
       end
     end

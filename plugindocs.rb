@@ -25,7 +25,7 @@ class PluginDocs < Clamp::Command
     report = JSON.parse(File.read(plugins_json))
     repositories = report["successful"]
 
-    alias_definitions = Util::AliasDefinitionsLoader.new.get_alias_definitions
+    alias_definitions = Util::AliasDefinitionsLoader.get_alias_definitions
 
     repositories.peach(parallelism) do |repository_name, details|
       if settings['skip'].include?(repository_name)

@@ -82,7 +82,7 @@ module LogstashDocket
       yield self
 
       return unless alias_definitions.key?(type)
-      alias_definitions.fetch(type).each do |alias_definition|
+      alias_definitions[type]&.each do |alias_definition|
         if alias_definition.fetch("from") == name
           yield AliasPlugin.new(canonical_plugin: self,
                                 alias_name: alias_definition.fetch("alias"),

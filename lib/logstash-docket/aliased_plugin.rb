@@ -17,7 +17,7 @@ module LogstashDocket
 
       super(type: canonical_plugin.type, name: alias_name)
 
-      fail("#{canonical_plugin.desc} plugin type #{type} not supported as an integration plugin") unless SUPPORTED_TYPES.include?(type)
+      fail("#{canonical_plugin.desc} plugin type #{type} not supported as an alias plugin") unless SUPPORTED_TYPES.include?(type)
 
       @canonical_plugin = canonical_plugin
       @doc_headers = doc_headers
@@ -31,8 +31,9 @@ module LogstashDocket
 
     def documentation
       content = @canonical_plugin.documentation
-      @doc_headers.each { |header| content = content.gsub(header["replace"], header["with"]) }
-      content
+      @doc_headers.reduce(content) do |memo, header|
+        memo.gsub(header.fetch("replace"), header.fetch("with"))
+      end
     end
 
     ##
@@ -65,7 +66,7 @@ module LogstashDocket
       return false unless super
 
       return false unless other.kind_of?(AliasPlugin)
-      return false unless self.canonical_plugin == other.canonical_plugin
+      return false unless self.name == other.name
 
       return true
     end
