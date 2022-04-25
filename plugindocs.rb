@@ -3,7 +3,6 @@ require "json"
 require "fileutils"
 require "time"
 require "yaml"
-require "net/http"
 require "stud/try"
 require "pmap" # Enumerable#peach
 
@@ -25,6 +24,8 @@ class PluginDocs < Clamp::Command
 
     report = JSON.parse(File.read(plugins_json))
     repositories = report["successful"]
+
+    alias_definitions = Util::AliasDefinitionsLoader.get_alias_definitions
 
     repositories.peach(parallelism) do |repository_name, details|
       if settings['skip'].include?(repository_name)
@@ -50,7 +51,7 @@ class PluginDocs < Clamp::Command
         next
       end
 
-      released_plugin.with_embedded_plugins.each do |plugin|
+      released_plugin.with_wrapped_plugins(alias_definitions).each do |plugin|
         $stderr.puts("#{plugin.desc}: fetching documentation\n")
         content = plugin.documentation
 

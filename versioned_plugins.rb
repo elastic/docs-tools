@@ -2,17 +2,13 @@ require "clamp"
 require "json"
 require "fileutils"
 require "time"
-require "yaml"
-require "net/http"
 require "stud/try"
 require "octokit"
 require "erb"
 require "pmap"
-require "yaml"
-
-require_relative 'lib/logstash-docket'
 
 require_relative 'lib/core_ext/erb_result_with_hash'
+require_relative 'lib/logstash-docket'
 
 class VersionedPluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
@@ -175,17 +171,23 @@ class VersionedPluginDocs < Clamp::Command
       end
     end
 
-    $stderr.puts("REINDEXING PLUGINS..load plugin aliases")
-    aliases = load_alias_definitions_for_target_plugins(plugin_names_by_type)
+    $stderr.puts("REINDEXING PLUGINS, loading plugin aliases...")
+    alias_definitions_by_type = Util::AliasDefinitionsLoader.get_alias_definitions
 
     # add aliases named to the partitioned plugin names collection
-    aliases.each { |type, alias_name, _| plugin_names_by_type.fetch(type).add(alias_name) }
+    alias_definitions_by_type.each do |type, alias_definitions|
+      alias_definitions.each do |alias_definition|
+        plugin_names_by_type.fetch(type).add(alias_definition.fetch("alias"))
+      end
+    end
 
     # rewrite alias indices if target plugin was changed
-    $stderr.puts("REINDEXING PLUGINS ALIASES... #{aliases.size}\n")
-    aliases.each do |type, alias_name, target|
-      $stderr.puts("[plugin:#{alias_name}] reindexing\n")
-      write_alias_index(type, alias_name, target)
+    $stderr.puts("REINDEXING PLUGINS ALIASES... #{alias_definitions_by_type.size}\n")
+    alias_definitions_by_type.each do |type, alias_definitions|
+      alias_definitions.each do |alias_definition|
+        $stderr.puts("[plugin:#{alias_definition.fetch("alias")}] reindexing\n")
+        write_alias_index(type, alias_definition.fetch("alias"), alias_definition.fetch("from"))
+      end
     end
 
     # rewrite incomplete plugin indices
@@ -413,26 +415,6 @@ class VersionedPluginDocs < Clamp::Command
     FileUtils.mkdir_p(directory) if !File.directory?(directory)
   end
 
-  # param plugin_names_by_type: map of lists {:input => [beats, tcp, ...]}
-  # return list of triples (type, alias, target) es: ("input", "agent", "beats")
-  def load_alias_definitions_for_target_plugins(plugin_names_by_type)
-    alias_url = URI('https://raw.githubusercontent.com/elastic/logstash/master/logstash-core/src/main/resources/org/logstash/plugins/AliasRegistry.yml')
-    alias_yml = Net::HTTP.get(alias_url)
-    yaml = YAML::safe_load(alias_yml) || {}
-
-    aliases = []
-
-    yaml.each do |type, alias_defs|
-      alias_defs.each do |alias_name, target|
-        if plugin_names_by_type.fetch(type).include?(target)
-          aliases << [type, alias_name, target]
-        end
-      end
-    end
-
-    aliases
-  end
-
   def fetch_stack_versions
     stack_versions = Net::HTTP.get(URI.parse(VERSIONS_URL))
     @logstash_version = get_logstash_version(stack_versions)
@@ -467,6 +449,7 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%BRANCH%", @logstash_version) \
       .gsub("%ECS_VERSION%", @ecs_version)
   end
+
 end
 
 if __FILE__ == $0

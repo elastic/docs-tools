@@ -78,6 +78,19 @@ module LogstashDocket
       fail NotImplementedError
     end
 
+    def with_alias(alias_definitions)
+      yield self
+
+      return unless alias_definitions.key?(type)
+      alias_definitions[type]&.each do |alias_definition|
+        if alias_definition.fetch("from") == name
+          yield AliasPlugin.new(canonical_plugin: self,
+                                alias_name: alias_definition.fetch("alias"),
+                                doc_headers: alias_definition.fetch("docs", []))
+        end
+      end
+    end
+
     ##
     # @return [Boolean]
     def ==(other)
