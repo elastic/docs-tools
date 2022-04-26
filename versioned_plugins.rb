@@ -32,7 +32,7 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-codec-java_codec_example"
   ]
 
-  VERSIONS_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/master.asciidoc"
+  STACK_VERSIONS_BASE_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/"
 
   def logstash_docs_path
     File.join(output_path, "logstash-docs")
@@ -416,12 +416,22 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def fetch_stack_versions
-    stack_versions = Net::HTTP.get(URI.parse(VERSIONS_URL))
-    @logstash_version = get_logstash_version(stack_versions)
+    current_stack_versions = resolve_current_versions
+    @logstash_version = get_logstash_version(current_stack_versions)
     puts "Logstash version: #{@logstash_version}\n"
 
-    @ecs_version = get_ecs_version(stack_versions)
+    @ecs_version = get_ecs_version(current_stack_versions)
     puts "ECS version: #{@ecs_version}\n"
+  end
+
+  def fetch_stack_versions_doc(version)
+    Net::HTTP.get(URI.parse(STACK_VERSIONS_BASE_URL + version + ".asciidoc"))
+  end
+
+  def resolve_current_versions
+    current_stack_versions_ref_doc = fetch_stack_versions_doc("current")
+    current_doc_link = current_stack_versions_ref_doc[/include::(.*?).asciidoc/m, 1]
+    fetch_stack_versions_doc(current_doc_link)
   end
 
   def get_logstash_version(stack_versions)
