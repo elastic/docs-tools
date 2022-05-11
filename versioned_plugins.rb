@@ -435,11 +435,18 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def get_logstash_version(stack_versions)
-    stack_versions[/\:logstash_version:\s+(.*?)\n/, 1]
+    get_major_and_minor_versions(stack_versions[/\:logstash_version:\s+(.*?)\n/, 1])
   end
 
   def get_ecs_version(stack_versions)
-    stack_versions[/\:ecs_version:\s+(.*?)\n/, 1]
+    get_major_and_minor_versions(stack_versions[/\:ecs_version:\s+(.*?)\n/, 1])
+  end
+
+  # In VPR documentation URLs, only major and minor versions are used.
+  def get_major_and_minor_versions(full_version)
+    raise "Stack version cannot be null." if full_version.nil?
+    version = Gem::Version.new(full_version)
+    version.segments.first().to_s + "." + version.segments[1].to_s
   end
 
   def write_stack_versions(content, type)
