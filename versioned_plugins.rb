@@ -42,7 +42,7 @@ class VersionedPluginDocs < Clamp::Command
     File.join(output_path, "docs")
   end
 
-  attr_reader :octo, :logstash_version, :ecs_version
+  attr_reader :octo, :stack_version, :ecs_version
 
   include LogstashDocket
 
@@ -417,8 +417,8 @@ class VersionedPluginDocs < Clamp::Command
 
   def fetch_stack_versions
     current_stack_versions = resolve_current_versions
-    @logstash_version = get_logstash_version(current_stack_versions)
-    puts "Logstash version: #{@logstash_version}\n"
+    @stack_version = get_stack_version(current_stack_versions)
+    puts "Stack version: #{@stack_version}\n"
 
     @ecs_version = get_ecs_version(current_stack_versions)
     puts "ECS version: #{@ecs_version}\n"
@@ -434,12 +434,19 @@ class VersionedPluginDocs < Clamp::Command
     fetch_stack_versions_doc(current_doc_link)
   end
 
-  def get_logstash_version(stack_versions)
-    stack_versions[/\:logstash_version:\s+(.*?)\n/, 1]
+  def get_stack_version(stack_versions)
+    get_major_and_minor_versions(stack_versions[/\:version:\s+(.*?)\n/, 1])
   end
 
   def get_ecs_version(stack_versions)
-    stack_versions[/\:ecs_version:\s+(.*?)\n/, 1]
+    get_major_and_minor_versions(stack_versions[/\:ecs_version:\s+(.*?)\n/, 1])
+  end
+
+  # In VPR documentation URLs, only major and minor versions are used.
+  def get_major_and_minor_versions(full_version)
+    raise "Stack version cannot be null." if full_version.nil?
+    version = Gem::Version.new(full_version)
+    version.segments.first().to_s + "." + version.segments[1].to_s
   end
 
   def write_stack_versions(content, type)
@@ -456,7 +463,7 @@ class VersionedPluginDocs < Clamp::Command
     end
 
     content = content \
-      .gsub("%BRANCH%", @logstash_version) \
+      .gsub("%BRANCH%", @stack_version) \
       .gsub("%ECS_VERSION%", @ecs_version)
   end
 
