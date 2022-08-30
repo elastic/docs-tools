@@ -5,6 +5,7 @@ require "time"
 require "yaml"
 require "stud/try"
 require "pmap" # Enumerable#peach
+require "set"
 
 require_relative 'lib/logstash-docket'
 
@@ -27,7 +28,13 @@ class PluginDocs < Clamp::Command
 
     alias_definitions = Util::AliasDefinitionsLoader.get_alias_definitions
 
+    # cache the processed plugins to prevent re-process with wrapped and alias plugins
+    processed_plugins = Set.new
+
     repositories.peach(parallelism) do |repository_name, details|
+      next if processed_plugins.include?(repository_name)
+      processed_plugins.add(repository_name)
+
       if settings['skip'].include?(repository_name)
         $stderr.puts("Skipping #{repository_name}\n")
         next
@@ -52,6 +59,8 @@ class PluginDocs < Clamp::Command
       end
 
       released_plugin.with_wrapped_plugins(alias_definitions).each do |plugin|
+        processed_plugins.add(plugin.canonical_name)
+
         $stderr.puts("#{plugin.desc}: fetching documentation\n")
         content = plugin.documentation
 
