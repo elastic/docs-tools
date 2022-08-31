@@ -1,11 +1,12 @@
 require "clamp"
-require "json"
 require "fileutils"
-require "time"
-require "yaml"
-require "stud/try"
+require "json"
 require "pmap" # Enumerable#peach
 require "set"
+require "stud/try"
+require "time"
+require "thread" # Mutex
+require "yaml"
 
 require_relative 'lib/logstash-docket'
 
@@ -13,12 +14,18 @@ class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
   option "--main", :flag, "Fetch the plugin's docs from main instead of the version found in PLUGINS_JSON", :default => false
   option "--settings", "SETTINGS_YAML", "Path to the settings file.", :default => File.join(File.dirname(__FILE__), "settings.yml"), :attribute_name => :settings_path
-  option("--parallelism", "NUMBER", "for performance", default: 1) { |v| Integer(v) }
+  option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
   option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
 
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
 
   include LogstashDocket
+
+  # cache the processed plugins to prevent re-process with wrapped and alias plugins
+  @@processed_plugins = Set.new
+
+  # a mutex to provide safely sharing resources in threads
+  @@mutex = Mutex.new
 
   def execute
     settings = YAML.load(File.read(settings_path))
@@ -28,12 +35,12 @@ class PluginDocs < Clamp::Command
 
     alias_definitions = Util::AliasDefinitionsLoader.get_alias_definitions
 
-    # cache the processed plugins to prevent re-process with wrapped and alias plugins
-    processed_plugins = Set.new
-
-    repositories.peach(parallelism) do |repository_name, details|
-      next if processed_plugins.include?(repository_name)
-      processed_plugins.add(repository_name)
+    # we need to sort to be sure we generate docs first for embedded plugins of integration plugins
+    # and skip the process for stand-alone plugin if already processed
+    sorted_repositories = repositories.sort_by { |name,_|  name.include?('-integration-') ? 0 : 1 }
+    sorted_repositories.peach(parallelism) do |repository_name, details|
+      next if plugin_processed?(repository_name)
+      cache_processed_plugin(repository_name)
 
       if settings['skip'].include?(repository_name)
         $stderr.puts("Skipping #{repository_name}\n")
@@ -47,60 +54,72 @@ class PluginDocs < Clamp::Command
         github_source_from_gem_data(repository_name, gem_data)
       end || fail("[repository:#{repository_name}]: failed to find release package `#{tag(version)}` via rubygems")
 
-      release_tag = released_plugin.tag
-      release_date = released_plugin.release_date ?
-                         released_plugin.release_date.strftime("%Y-%m-%d") :
-                         "unreleased"
-      changelog_url = released_plugin.changelog_url
-
       if released_plugin.type == 'integration' && !is_default_plugin
         $stderr.puts("[repository:#{repository_name}]: Skipping non-default Integration Plugin\n")
         next
       end
 
+      release_tag = released_plugin.tag
+      release_date = released_plugin.release_date ?
+                       released_plugin.release_date.strftime("%Y-%m-%d") :
+                       "unreleased"
+      changelog_url = released_plugin.changelog_url
+
       released_plugin.with_wrapped_plugins(alias_definitions).each do |plugin|
-        processed_plugins.add(plugin.canonical_name)
-
-        $stderr.puts("#{plugin.desc}: fetching documentation\n")
-        content = plugin.documentation
-
-        if content.nil?
-          $stderr.puts("#{plugin.desc}: failed to fetch doc; skipping\n")
-          next
-        end
-
-        output_asciidoc = "#{output_path}/docs/plugins/#{plugin.type}s/#{plugin.name}.asciidoc"
-        directory = File.dirname(output_asciidoc)
-        FileUtils.mkdir_p(directory) if !File.directory?(directory)
-
-        # Replace %VERSION%, etc
-        content = content \
-        .gsub("%VERSION%", release_tag) \
-        .gsub("%RELEASE_DATE%", release_date || "unreleased") \
-        .gsub("%CHANGELOG_URL%", changelog_url)
-
-        # Inject contextual variables for docs build
-        injection_variables = Hash.new
-        injection_variables[:default_plugin] = (is_default_plugin ? 1 : 0)
-        content = inject_variables(content, injection_variables)
-
-        # Even if no version bump, sometimes generating content might be different.
-        # For this case, we skip to accept the changes.
-        # eg: https://github.com/elastic/logstash-docs/pull/983/commits
-        if skip_existing? && File.exist?(output_asciidoc) \
-            && no_version_bump?(output_asciidoc, content)
-          $stderr.puts("#{plugin.desc}: skipping since no version bump and doc exists.\n")
-          next
-        end
-
-        # write the doc
-        File.write(output_asciidoc, content)
-        puts "#{plugin.canonical_name}@#{plugin.tag}: #{release_date}\n"
+        cache_processed_plugin(plugin.canonical_name)
+        write_doc_to_file(plugin, release_tag, release_date, changelog_url, is_default_plugin)
       end
     end
   end
 
   private
+
+  ##
+  # Generates a doc based on plugin info and writes to output .asciidoc file.
+  #
+  # @param plugin [Plugin]
+  # @param release_tag [String]
+  # @param release_date [String]
+  # @param changelog_url [String]
+  # @param is_default_plugin [Boolean]
+  # @return [void]
+  def write_doc_to_file(plugin, release_tag, release_date, changelog_url, is_default_plugin)
+    $stderr.puts("#{plugin.desc}: fetching documentation\n")
+    content = plugin.documentation
+
+    if content.nil?
+      $stderr.puts("#{plugin.desc}: failed to fetch doc; skipping\n")
+      return
+    end
+
+    output_asciidoc = "#{output_path}/docs/plugins/#{plugin.type}s/#{plugin.name}.asciidoc"
+    directory = File.dirname(output_asciidoc)
+    FileUtils.mkdir_p(directory) if !File.directory?(directory)
+
+    # Replace %VERSION%, etc
+    content = content \
+      .gsub("%VERSION%", release_tag) \
+      .gsub("%RELEASE_DATE%", release_date || "unreleased") \
+      .gsub("%CHANGELOG_URL%", changelog_url)
+
+    # Inject contextual variables for docs build
+    injection_variables = Hash.new
+    injection_variables[:default_plugin] = (is_default_plugin ? 1 : 0)
+    content = inject_variables(content, injection_variables)
+
+    # Even if no version bump, sometimes generating content might be different.
+    # For this case, we skip to accept the changes.
+    # eg: https://github.com/elastic/logstash-docs/pull/983/commits
+    if skip_existing? && File.exist?(output_asciidoc) \
+          && no_version_bump?(output_asciidoc, content)
+      $stderr.puts("#{plugin.desc}: skipping since no version bump and doc exists.\n")
+      return
+    end
+
+    # write the doc
+    File.write(output_asciidoc, content)
+    puts "#{plugin.canonical_name}@#{plugin.tag}: #{release_date}\n"
+  end
 
   ##
   # Hack to inject variables after a known pattern (the type declaration)
@@ -150,6 +169,28 @@ class PluginDocs < Clamp::Command
     existing_file_content = File.read(output_asciidoc)
     version_fetch_regex = /^\:version: (.*?)\n/
     existing_file_content[version_fetch_regex, 1] == content[version_fetch_regex, 1]
+  end
+
+  ##
+  # Checks if plugin cached.
+  #
+  # @param plugin_canonical_name [String]
+  # @return [Boolean]
+  def plugin_processed?(plugin_canonical_name)
+    @@mutex.synchronize do
+      return @@processed_plugins.include?(plugin_canonical_name)
+    end
+  end
+
+  ##
+  # Adds a plugin to caching list.
+  #
+  # @param plugin_canonical_name [String]
+  # @return [void]
+  def cache_processed_plugin(plugin_canonical_name)
+    @@mutex.synchronize do
+      @@processed_plugins.add(plugin_canonical_name)
+    end
   end
 end
 
