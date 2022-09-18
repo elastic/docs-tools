@@ -14,7 +14,7 @@ class PluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to the top-level of the logstash-docs path to write the output.", required: true
   option "--main", :flag, "Fetch the plugin's docs from main instead of the version found in PLUGINS_JSON", :default => false
   option "--settings", "SETTINGS_YAML", "Path to the settings file.", :default => File.join(File.dirname(__FILE__), "settings.yml"), :attribute_name => :settings_path
-  option("--parallelism", "NUMBER", "for performance", default: 4) { |v| Integer(v) }
+  option("--parallelism", "NUMBER", "for performance", default: 1) { |v| Integer(v) }
   option "--skip-existing", :flag, "Don't generate documentation if asciidoc file exists"
 
   parameter "PLUGINS_JSON", "The path to the file containing plugin versions json"
@@ -38,7 +38,16 @@ class PluginDocs < Clamp::Command
     # we need to sort to be sure we generate docs first for embedded plugins of integration plugins
     # and skip the process for stand-alone plugin if already processed
     sorted_repositories = repositories.sort_by { |name,_|  name.include?('-integration-') ? 0 : 1 }
-    sorted_repositories.peach(parallelism) do |repository_name, details|
+    if parallelism > 1
+      $stderr.puts("WARN: --parallelism is temporarily constrained to 1\n")
+    end
+
+    # there is a race condition when embedded plugins of integrations have changes
+    # we are using cache mechanism to slightly improve the situation but doesn't 100% guarantee
+    # TODO: for the long term stick with {.peach(parallelism) do |repository_name, details| }
+    # to speed up the process
+    # quick thought: separate integration embedded plugin doc generation process
+    sorted_repositories.each do |repository_name, details|
       next if plugin_processed?(repository_name)
       cache_processed_plugin(repository_name)
 
