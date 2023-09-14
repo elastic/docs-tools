@@ -209,8 +209,12 @@ class VersionedPluginDocs < Clamp::Command
     # rewrite versions-by-type indices
     $stderr.puts("REINDEXING TYPES... #{}\n")
     plugin_names_by_type.each do |type, names|
-      $stderr.puts("[type:#{type}] reindexing\n")
-      write_type_index(type, names.sort)
+      if type == 'integration'
+        $stderr.puts("[type:#{type}] skipping reindexing\n")
+      else
+        $stderr.puts("[type:#{type}] reindexing\n")
+        write_type_index(type, names.sort)
+      end
     end
   end
 
