@@ -244,8 +244,9 @@ class VersionedPluginDocs < Clamp::Command
       `git commit -m "updated versioned plugin docs" -a`
       `git push origin #{branch_name}`
     end
-    octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
+    pull_request = octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
         "auto generated update of versioned plugin documentation", "")
+    octo.update_pull_request("elastic/logstash-docs", pull_request.number, automerge: true)
   end
 
   def branch_exists?(client, branch_name)
