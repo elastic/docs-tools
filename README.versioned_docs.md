@@ -35,7 +35,7 @@ docs/versioned-plugins
 
 #### How to use
 
-Instal dependencies with `bundle install`
+Install dependencies with `bundle install`
 
 ```
 % bundle exec ruby versioned_plugins.rb -h
