@@ -29,7 +29,8 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-input-java_input_example",
     "logstash-filter-java_filter_example",
     "logstash-output-java_output_example",
-    "logstash-codec-java_codec_example"
+    "logstash-codec-java_codec_example",
+    "logstash-integration-logstash"
   ]
 
   STACK_VERSIONS_BASE_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/"
