@@ -9,6 +9,7 @@ require "pmap"
 
 require_relative 'lib/core_ext/erb_result_with_hash'
 require_relative 'lib/logstash-docket'
+require_relative 'git_helper'
 
 class VersionedPluginDocs < Clamp::Command
   option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
@@ -233,19 +234,15 @@ class VersionedPluginDocs < Clamp::Command
 
   def submit_pr
     branch_name = "versioned_docs_new_content"
-    octo = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
-    if branch_exists?(octo, branch_name)
+    git_helper = GitHelper.new("elastic/logstash-docs")
+    if git_helper.branch_exists?(branch_name)
       puts "WARNING: Branch \"#{branch_name}\" already exists. Not creating a new PR. Please merge the existing PR or delete the PR and the branch."
       return
     end
-    Dir.chdir(logstash_docs_path) do |path|
-      `git checkout -b #{branch_name}`
-      `git add .`
-      `git commit -m "updated versioned plugin docs" -a`
-      `git push origin #{branch_name}`
-    end
-    octo.create_pull_request("elastic/logstash-docs", "versioned_plugin_docs", branch_name,
-        "auto generated update of versioned plugin documentation", "")
+
+    pr_title = "auto generated update of versioned plugin documentation"
+    git_helper.commit(logstash_docs_path, branch_name, "updated versioned plugin docs")
+    git_helper.create_pull_request(branch_name, "versioned_plugin_docs", pr_title, "")
   end
 
   def branch_exists?(client, branch_name)
