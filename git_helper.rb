@@ -24,9 +24,9 @@ class GitHelper
     end
   end
 
-  def create_pull_request(branch_name, against_branch, title, description)
+  def create_pull_request(branch_name, against_branch, title, description, options = {})
     puts "Creating a PR..."
-    @git_client.create_pull_request(@repo_name, against_branch, branch_name, title, description)
+    @git_client.create_pull_request(@repo_name, against_branch, branch_name, title, description, options)
   end
 
   def branch_exists?(branch_name)

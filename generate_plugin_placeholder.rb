@@ -3,10 +3,10 @@ require "erb"
 require "octokit"
 require_relative "git_helper"
 
-class GeneratePluginPlaceholder < Clamp::Command
-  option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository will be cloned and written to", required: true
+class GeneratePluginPlaceholderDoc < Clamp::Command
+  option "--output-path", "OUTPUT", "Path to a directory where logstash-docs repository is cloned and changes going to be written to", required: true
   option "--plugin-type", "STRING", "Type (ex: integration, input, etc) of a new plugin.", required: true
-  option "--plugin-name", "STRING", "Name for a new plugin.", required: true
+  option "--plugin-name", "STRING", "Name of the plugin.", required: true
 
   SUPPORTED_TYPES = %w(integration)
 
@@ -36,7 +36,9 @@ class GeneratePluginPlaceholder < Clamp::Command
   end
 
   def logstash_docs_path
-    File.join(output_path, "logstash-docs")
+    path = File.join(output_path, "logstash-docs")
+    fail("#{path} doesn't exist. Please provide the path for `--output-path` where `logstash-docs` repo is located.") unless Dir.exist?(path)
+    path
   end
 
   def submit_pr
@@ -49,10 +51,10 @@ class GeneratePluginPlaceholder < Clamp::Command
 
     pr_title = "A placeholder for new plugin"
     git_helper.commit(logstash_docs_path, branch_name, "create an empty placeholder for new plugin")
-    git_helper.create_pull_request(branch_name, "versioned_plugin_docs", pr_title, "")
+    git_helper.create_pull_request(branch_name, "versioned_plugin_docs", pr_title, "", { draft: true })
   end
 end
 
 if __FILE__ == $0
-  GeneratePluginPlaceholder.run
+  GeneratePluginPlaceholderDoc.run
 end
