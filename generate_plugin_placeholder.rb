@@ -43,7 +43,7 @@ class GeneratePluginPlaceholder < Clamp::Command
     branch_name = "new_plugin_placeholder"
     git_helper = GitHelper.new("elastic/logstash-docs")
     if git_helper.branch_exists?(branch_name)
-      puts "WARNING: Branch \"#{branch_name}\" already exists. Rejecting PR create process. Please merge the existing PR or delete the PR and the branch."
+      puts "WARNING: Branch \"#{branch_name}\" already exists. Aborting creation of PR. Please merge the existing PR or delete the PR and the branch."
       return
     end
 

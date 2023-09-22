@@ -5,12 +5,8 @@ class GitHelper
   attr_reader :git_client, :repo_name
 
   def initialize(repo_name)
-    using_gh_token = "using a github token"
-    if ENV.fetch("GITHUB_TOKEN", "").size > 0
-      puts using_gh_token
-    else
-      puts "not ".concat(using_gh_token)
-    end
+    print "not " if ENV.fetch("GITHUB_TOKEN", "").empty?
+    puts "using a github token"
 
     @git_client = Octokit::Client.new(:access_token => ENV["GITHUB_TOKEN"])
 
