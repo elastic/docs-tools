@@ -150,10 +150,10 @@ class PluginDocs < Clamp::Command
   # Support for plugins that are sourced outside the logstash-plugins org,
   # by means of the gem_data's `source_code_uri` metadata.
   def github_source_from_gem_data(gem_name, gem_data)
-    known_source = gem_data.dig('source_code_uri')
+    known_source = gem_data.dig('metadata', 'source_code_uri')
 
     if known_source
-      known_source =~ %r{\bgithub\.com/(?<org>[^/])/(?<repo>[^/])} || fail("unsupported source `#{source}`")
+      known_source =~ %r{\bgithub.com/(?<org>[^/]+)/(?<repo>[^/]+)} || fail("unsupported source `#{known_source}`")
       org = Regexp.last_match(:org)
       repo = Regexp.last_match(:repo)
     else
