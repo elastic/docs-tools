@@ -33,6 +33,12 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-codec-java_codec_example"
   ]
 
+  # If plugins are under the logstash-plugins org, they will automatically explored.
+  # However, if plugin is located in other org, we need to manually list up here in a {org}/{plugin-repo-name} format.
+  ADDITIONAL_ORG_PLUGINS = [
+    "elastic/logstash-filter-elastic_integration"
+  ]
+
   STACK_VERSIONS_BASE_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/"
 
   def logstash_docs_path
@@ -82,16 +88,17 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def generate_docs
-    regex = Regexp.new(plugin_regex)
     puts "writing to #{logstash_docs_path}"
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
     repos = (repos - PLUGIN_SKIP_LIST).sort.uniq.map {|repo| "logstash-plugins/#{repo}"}
+    repos = repos.concat(ADDITIONAL_ORG_PLUGINS)
 
     puts "found #{repos.size} repos"
 
     # TODO: make less convoluted
     timestamp_reference = since || Time.strptime($TIMESTAMP_REFERENCE, "%a, %d %b %Y %H:%M:%S %Z")
+    puts "Generating docs since #{timestamp_reference.inspect}"
 
     plugins_indexes_to_rebuild = Util::ThreadsafeWrapper.for(Set.new)
     package_indexes_to_rebuild = Util::ThreadsafeWrapper.for(Set.new)
