@@ -33,7 +33,9 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-codec-java_codec_example"
   ]
 
-  ADDITIONAL_PLUGINS = [
+  # If plugins are under the logstash-plugins org, they will automatically explored.
+  # However, if plugin is located in other org, we need to manually list up here in a {org}/{plugin-repo-name} format.
+  ADDITIONAL_ORG_PLUGINS = [
     "elastic/logstash-filter-elastic_integration"
   ]
 
@@ -90,7 +92,7 @@ class VersionedPluginDocs < Clamp::Command
     repos = octo.org_repos("logstash-plugins")
     repos = repos.map {|repo| repo.name }.select {|repo| repo.match(plugin_regex) }
     repos = (repos - PLUGIN_SKIP_LIST).sort.uniq.map {|repo| "logstash-plugins/#{repo}"}
-    repos = repos.concat(ADDITIONAL_PLUGINS)
+    repos = repos.concat(ADDITIONAL_ORG_PLUGINS)
 
     puts "found #{repos.size} repos"
 
