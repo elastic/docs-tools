@@ -324,16 +324,7 @@ class VersionedPluginDocs < Clamp::Command
         .gsub(":include_path: ../../../logstash/docs/include", ":include_path: ../include/6.x")
         .gsub(/[\t\r ]+$/,"")
 
-      content = content
-        .gsub("<<string,string>>", "{logstash-ref}/configuration-file-structure.html#string[string]")
-        .gsub("<<array,array>>", "{logstash-ref}/configuration-file-structure.html#array[array]")
-        .gsub("<<number,number>>", "{logstash-ref}/configuration-file-structure.html#number[number]")
-        .gsub("<<boolean,boolean>>", "{logstash-ref}/configuration-file-structure.html#boolean[boolean]")
-        .gsub("<<hash,hash>>", "{logstash-ref}/configuration-file-structure.html#hash[hash]")
-        .gsub("<<password,password>>", "{logstash-ref}/configuration-file-structure.html#password[password]")
-        .gsub("<<path,path>>", "{logstash-ref}/configuration-file-structure.html#path[path]")
-        .gsub("<<uri,uri>>", "{logstash-ref}/configuration-file-structure.html#uri[uri]")
-        .gsub("<<bytes,bytes>>", "{logstash-ref}/configuration-file-structure.html#bytes[bytes]")
+      content = fix_configuration_file_structure_links(content)
         .gsub("<<event-api,Event API>>", "{logstash-ref}/event-api.html[Event API]")
         .gsub("<<dead-letter-queues>>", '{logstash-ref}/dead-letter-queues.html[dead-letter-queues]')
         .gsub("<<logstash-config-field-references>>", "{logstash-ref}/event-dependent-configuration.html#logstash-config-field-references[Field References]")
@@ -384,6 +375,22 @@ class VersionedPluginDocs < Clamp::Command
     end
 
     write_stack_versions(content, type)
+  end
+  
+  # transforms '<<ANCHOR,ANYTHING>>' into {logstash-ref}/configuration-file-structure.html#ANCHOR[ANYTHING]
+  def fix_configuration_file_structure_links(content)
+    anchors = %w(
+      string
+      array
+      number
+      boolean
+      hash
+      password
+      path
+      uri
+      bytes
+    )
+    content.gsub(/<<(#{Regexp.union(anchors)}),(.+?)>>/, '{logstash-ref}/configuration-file-structure.html#\1[\2]')
   end
 
   def versions_index_exists?(name, type)
