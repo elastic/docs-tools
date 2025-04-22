@@ -271,7 +271,7 @@ class VersionedPluginDocs < Clamp::Command
     changelog_url = plugin.changelog_url
 
     output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{plugin.type}s/#{plugin.name}-#{release_tag}.asciidoc"
-    if File.exists?(output_asciidoc) && skip_existing?
+    if File.exist?(output_asciidoc) && skip_existing?
       $stderr.puts "[#{plugin.desc}]: skipping - file already exists\n"
       return true
     end
