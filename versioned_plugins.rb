@@ -58,9 +58,11 @@ class VersionedPluginDocs < Clamp::Command
     check_rate_limit!
     clone_docs_repo
     fetch_stack_versions
+    resolve_reference_timestamp
     generate_docs
     if new_versions?
       unless dry_run?
+        save_doc_generated_time
         puts "creating pull request.."
         submit_pr
       end
@@ -87,6 +89,20 @@ class VersionedPluginDocs < Clamp::Command
     end
   end
 
+  # Tries to get last doc generated time from the file unless since
+  # For the worst case, fallbacks to the last commit time
+  def resolve_reference_timestamp
+    @doc_generated_last_time_reference ||= begin
+                                             if since
+                                               since
+                                             elsif File.exist?(PLUGIN_DOCS_LAST_GENERATED_FILE)
+                                               Time.parse(File.read(PLUGIN_DOCS_LAST_GENERATED_FILE).strip)
+                                             else
+                                               Time.strptime($TIMESTAMP_REFERENCE, "%a, %d %b %Y %H:%M:%S %Z")
+                                             end
+                                           end
+  end
+
   def generate_docs
     puts "writing to #{logstash_docs_path}"
     repos = octo.org_repos("logstash-plugins")
@@ -95,10 +111,7 @@ class VersionedPluginDocs < Clamp::Command
     repos = repos.concat(ADDITIONAL_ORG_PLUGINS)
 
     puts "found #{repos.size} repos"
-
-    # TODO: make less convoluted
-    timestamp_reference = since || Time.strptime($TIMESTAMP_REFERENCE, "%a, %d %b %Y %H:%M:%S %Z")
-    puts "Generating docs since #{timestamp_reference.inspect}"
+    puts "Generating docs since #{@doc_generated_last_time_reference.inspect}"
 
     plugins_indexes_to_rebuild = Util::ThreadsafeWrapper.for(Set.new)
     package_indexes_to_rebuild = Util::ThreadsafeWrapper.for(Set.new)
@@ -127,14 +140,14 @@ class VersionedPluginDocs < Clamp::Command
         next
       end
 
-      # if the repository has no releases, or none since our `timestamp_reference`,
+      # if the repository has no releases, or none since our `@doc_generated_last_time_reference`,
       # it doesn't need to be added to the reindex list here.
-      if latest_release.release_date.nil? || latest_release.release_date < timestamp_reference
+      if latest_release.release_date.nil? || latest_release.release_date < @doc_generated_last_time_reference
         $stderr.puts("#{repository.desc}: no new releases.\n")
         next
       end
 
-      # the repository has one or more releases since our `timestamp_reference`, which means
+      # the repository has one or more releases since our `@doc_generated_last_time_reference`, which means
       # it will need to be reindexed.
       $stderr.puts("#{repository.desc}: found new release\n")
       # repos_requiring_rebuild.add(repository.name) &&
@@ -471,6 +484,16 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%ECS_VERSION%", @ecs_version)
   end
 
+  PLUGIN_DOCS_LAST_GENERATED_FILE = "#{logstash_docs_path}/#{PLUGIN_DOCS_LAST_GENERATED_FILE}"
+
+  # Save doc generated time, next time will be used for fetching plugins from this time
+  # Note that if we base on last commit time, PR merge creates new commit where we lose plugin docs between PR creation and merge
+  def save_doc_generated_time
+    # Overwrite file with the resolved last docs generated timestamp
+    File.open(PLUGIN_DOCS_LAST_GENERATED_FILE, "w") do |file|
+      file.puts "#{@doc_generated_last_time_reference}"
+    end
+  end
 end
 
 if __FILE__ == $0
