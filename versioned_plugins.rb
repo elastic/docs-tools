@@ -484,7 +484,7 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%ECS_VERSION%", @ecs_version)
   end
 
-  PLUGIN_DOCS_LAST_GENERATED_FILE = "#{logstash_docs_path}/#{PLUGIN_DOCS_LAST_GENERATED_FILE}"
+  PLUGIN_DOCS_LAST_GENERATED_FILE = "#{logstash_docs_path}/plugin_docs_last_generated_time.txt"
 
   # Save doc generated time, next time will be used for fetching plugins from this time
   # Note that if we base on last commit time, PR merge creates new commit where we lose plugin docs between PR creation and merge
