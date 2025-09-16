@@ -95,8 +95,8 @@ class VersionedPluginDocs < Clamp::Command
     @doc_generated_last_time_reference ||= begin
                                              if since
                                                since
-                                             elsif File.exist?(PLUGIN_DOCS_LAST_GENERATED_FILE)
-                                               Time.parse(File.read(PLUGIN_DOCS_LAST_GENERATED_FILE).strip)
+                                             elsif File.exist?(plugin_docs_last_generated_file)
+                                               Time.parse(File.read(plugin_docs_last_generated_file).strip)
                                              else
                                                Time.strptime($TIMESTAMP_REFERENCE, "%a, %d %b %Y %H:%M:%S %Z")
                                              end
@@ -484,13 +484,15 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%ECS_VERSION%", @ecs_version)
   end
 
-  PLUGIN_DOCS_LAST_GENERATED_FILE = "#{logstash_docs_path}/plugin_docs_last_generated_time.txt"
+  def plugin_docs_last_generated_file
+    "#{logstash_docs_path}/plugin_docs_last_generated_time.txt"
+  end
 
   # Save doc generated time, next time will be used for fetching plugins from this time
   # Note that if we base on last commit time, PR merge creates new commit where we lose plugin docs between PR creation and merge
   def save_doc_generated_time
     # Overwrite file with the resolved last docs generated timestamp
-    File.open(PLUGIN_DOCS_LAST_GENERATED_FILE, "w") do |file|
+    File.open(plugin_docs_last_generated_file, "w") do |file|
       file.puts "#{@doc_generated_last_time_reference}"
     end
   end
