@@ -484,10 +484,8 @@ class VersionedPluginDocs < Clamp::Command
       .gsub("%ECS_VERSION%", @ecs_version)
   end
 
-  PLUGIN_DOCS_LAST_GENERATED_FILE = "plugin_docs_last_generated_time.txt"
-
   def get_last_generated_file_path
-    "#{logstash_docs_path}/#{PLUGIN_DOCS_LAST_GENERATED_FILE}"
+    "#{logstash_docs_path}/plugin_docs_last_generated_time.txt"
   end
 
   # Save doc generated time, next time will be used for fetching plugins from this time
