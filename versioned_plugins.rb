@@ -31,6 +31,7 @@ class VersionedPluginDocs < Clamp::Command
     "logstash-filter-java_filter_example",
     "logstash-output-java_output_example",
     "logstash-codec-java_codec_example"
+    "logstash-codec-pretty"
   ]
 
   # If plugins are under the logstash-plugins org, they will automatically explored.
