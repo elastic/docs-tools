@@ -407,28 +407,8 @@ class VersionedPluginDocs < Clamp::Command
   def write_versions_index(name, type, versions)
     output_asciidoc = "#{logstash_docs_path}/docs/versioned-plugins/#{type}s/#{name}-index.asciidoc"
     lazy_create_output_folder(output_asciidoc)
-
-    # Preserve existing versions and their release dates from current index
-    existing_dates = {}
-    if File.exist?(output_asciidoc)
-      File.readlines(output_asciidoc).each do |line|
-        # Parse: | <<v3.1.31-...,v3.1.31>> | 2018-04-13 |
-        if line =~ /,([^>]+)>>\s+\|\s+(\d{4}-\d{2}-\d{2})/
-          version = $1
-          date = $2
-          existing_dates[version] = date
-        end
-      end
-    end
-
-    # Merge new versions with existing ones (new versions take precedence)
-    versions.each { |v, d| existing_dates[v] = d }
-    all_versions = existing_dates.map { |v, d| [v, d] }
-                    .sort_by { |v| Gem::Version.new(v[0].sub(/^v/, '')) }
-                    .reverse
-
     template = ERB.new(IO.read("logstash/templates/docs/versioned-plugins/plugin-index.asciidoc.erb"))
-    content = template.result_with_hash(name: name, type: type, versions: all_versions)
+    content = template.result_with_hash(name: name, type: type, versions: versions)
     File.write(output_asciidoc, content)
   end
 
