@@ -42,6 +42,10 @@ class VersionedPluginDocs < Clamp::Command
 
   STACK_VERSIONS_BASE_URL = "https://raw.githubusercontent.com/elastic/docs/master/shared/versions/stack/"
 
+  LOGSTASH_DOCS_REPO = "elastic/logstash-docs"
+  PR_BRANCH_NAME = "versioned_docs_new_content"
+  PR_BASE_BRANCH = "versioned_plugin_docs"
+
   def logstash_docs_path
     File.join(output_path, "logstash-docs")
   end
@@ -57,6 +61,17 @@ class VersionedPluginDocs < Clamp::Command
   def execute
     setup_github_client
     check_rate_limit!
+
+    # If the auto-generated PR branch is still on the remote (e.g. an existing
+    # PR hasn't been merged yet), there is no point in cloning logstash-docs
+    # and regenerating ~all plugin docs in parallel just to discover at the end
+    # that we cannot push a new branch. Bail out early. We still run the full
+    # pipeline under --dry-run so the script remains useful for local testing.
+    if !dry_run? && pr_branch_exists?
+      puts "WARNING: Branch \"#{PR_BRANCH_NAME}\" already exists on #{LOGSTASH_DOCS_REPO}. Skipping doc generation. Please merge the existing PR or delete the PR and the branch, then re-run."
+      return
+    end
+
     clone_docs_repo
     fetch_stack_versions
     resolve_reference_timestamp
@@ -70,6 +85,14 @@ class VersionedPluginDocs < Clamp::Command
     else
       puts "No new versions detected. Exiting.."
     end
+  end
+
+  def pr_branch_exists?
+    git_helper.branch_exists?(PR_BRANCH_NAME)
+  end
+
+  def git_helper
+    @git_helper ||= GitHelper.new(LOGSTASH_DOCS_REPO)
   end
 
   def setup_github_client
@@ -254,23 +277,16 @@ class VersionedPluginDocs < Clamp::Command
   end
 
   def submit_pr
-    branch_name = "versioned_docs_new_content"
-    git_helper = GitHelper.new("elastic/logstash-docs")
-    if git_helper.branch_exists?(branch_name)
-      puts "WARNING: Branch \"#{branch_name}\" already exists. Not creating a new PR. Please merge the existing PR or delete the PR and the branch."
+    # Defensive recheck in case the branch was created between the early
+    # bail-out in `execute` and now (e.g. a concurrent run pushed it).
+    if pr_branch_exists?
+      puts "WARNING: Branch \"#{PR_BRANCH_NAME}\" already exists. Not creating a new PR. Please merge the existing PR or delete the PR and the branch."
       return
     end
 
     pr_title = "auto generated update of versioned plugin documentation"
-    git_helper.commit(logstash_docs_path, branch_name, "updated versioned plugin docs")
-    git_helper.create_pull_request(branch_name, "versioned_plugin_docs", pr_title, "")
-  end
-
-  def branch_exists?(client, branch_name)
-    client.branch("elastic/logstash-docs", branch_name)
-    true
-  rescue Octokit::NotFound
-    false
+    git_helper.commit(logstash_docs_path, PR_BRANCH_NAME, "updated versioned plugin docs")
+    git_helper.create_pull_request(PR_BRANCH_NAME, PR_BASE_BRANCH, pr_title, "")
   end
 
   ##
