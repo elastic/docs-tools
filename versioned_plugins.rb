@@ -184,10 +184,10 @@ class VersionedPluginDocs < Clamp::Command
             plugin_version_index.fetch(plugin.canonical_name).add(plugin)
             plugin_names_by_type.fetch(plugin.type).add(plugin.name)
           else
-            $stderr.puts("#{plugin.desc}: documentation not available; skipping remaining releases from repository\n")
-            break false
+            $stderr.puts("#{plugin.desc}: documentation not available; skipping this plugin release\n")
+            next
           end
-        end || break
+        end
 
         break if latest_only?
       end
