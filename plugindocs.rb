@@ -63,11 +63,6 @@ class PluginDocs < Clamp::Command
         github_source_from_gem_data(repository_name, gem_data)
       end || fail("[repository:#{repository_name}]: failed to find release package `#{tag(version)}` via rubygems")
 
-      if released_plugin.type == 'integration' && !is_default_plugin
-        $stderr.puts("[repository:#{repository_name}]: Skipping non-default Integration Plugin\n")
-        next
-      end
-
       release_tag = released_plugin.tag
       release_date = released_plugin.release_date ?
                        released_plugin.release_date.strftime("%Y-%m-%d") :
