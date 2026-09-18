@@ -65,7 +65,7 @@ class VersionedPluginDocs < Clamp::Command
       unless dry_run?
         save_doc_generated_time
         puts "creating pull request.."
-        # submit_pr
+        submit_pr
       end
     else
       puts "No new versions detected. Exiting.."
