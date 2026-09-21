@@ -492,9 +492,8 @@ class VersionedPluginDocs < Clamp::Command
   # Save doc generated time, next time will be used for fetching plugins from this time
   # Note that if we base on last commit time, PR merge creates new commit where we lose plugin docs between PR creation and merge
   def save_doc_generated_time
-    # Overwrite file with the resolved last docs generated timestamp
     File.open(plugin_docs_last_generated_file, "w") do |file|
-      file.puts "#{@doc_generated_last_time_reference}"
+      file.puts Time.now.utc.to_s
     end
   end
 end
